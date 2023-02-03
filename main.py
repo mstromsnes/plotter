@@ -1,6 +1,5 @@
 from time import perf_counter
 import functools
-import socketclient
 from PySide6 import QtGui, QtCore, QtWidgets
 import mainwindow
 from datamediator import DataMediator
