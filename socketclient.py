@@ -18,7 +18,7 @@ class Client:
         resp_str = str(resp, "utf-8")
         return resp_str
 
-    def get_value(self, request: str) -> str:
+    def get_value(self, request: str) -> tuple[str, str]:
         self._send_request(request)
         return self._handle_response().strip(), request
 
