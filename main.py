@@ -1,23 +1,32 @@
 from time import perf_counter
 import functools
 import socketclient
+from PySide6 import QtGui, QtCore, QtWidgets
+import mainwindow
+from datamediator import DataMediator
 
 HOST = "192.168.4.141"
 PORT = 65431
 
 
 def main():
-    client = socketclient.Client(HOST, PORT)
-    request = "cpu"
-    start_time = perf_counter()
-    current_time = perf_counter()
-    i = 0
-    while current_time - start_time < 10:
-        value, req = client.get_value(request)
-        print(f"{req}: {value}")
-        i += 1
-        current_time = perf_counter()
-    print(f"\n\n\nDid {i} loops")
+    app = QtWidgets.QApplication()
+    data_source = DataMediator()
+    window = mainwindow.MainWindow(data_source)
+    window.resize(800, 600)
+    window.show()
+    app.exec()
+    # client = socketclient.Client(HOST, PORT)\player.html
+    # request = "cpu"
+    # start_time = perf_counter()
+    # current_time = perf_counter()
+    # i = 0
+    # while current_time - start_time < 10:
+    #     value, req = client.get_value(request)
+    #     print(f"{req}: {value}")
+    #     i += 1
+    #     current_time = perf_counter()
+    # print(f"\n\n\nDid {i} loops")
 
 
 def timer(func):
