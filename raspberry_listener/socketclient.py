@@ -1,4 +1,5 @@
 import socket
+from datetime import datetime
 
 
 class Client:
@@ -13,14 +14,14 @@ class Client:
         bytes_request = bytes(request + "\n", "utf-8")
         self.conn.sendall(bytes_request)
 
-    def _handle_response(self) -> str:
+    def _handle_response(self) -> tuple[datetime, str]:
         resp = self.conn.recv(1024)
         resp_str = str(resp, "utf-8")
-        return resp_str
+        return datetime.now(), resp_str.strip()
 
-    def get_value(self, request: str) -> tuple[str, str]:
+    def get_value(self, request: str) -> tuple[datetime, str]:
         self._send_request(request)
-        return self._handle_response().strip(), request
+        return self._handle_response()
 
     def __del__(self):
         self.send_close()

@@ -132,7 +132,9 @@ class ConnectWidget(QtWidgets.QWidget):
 
 class Toolbar(QtWidgets.QToolBar):
     def __init__(
-        self, data_mediator: DataMediator, parent: QtWidgets.QWidget | None = None
+        self,
+        data_mediator: DataMediator,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.connect_widget = ConnectWidget(data_mediator, [192, 168, 4, 141], 65431)
