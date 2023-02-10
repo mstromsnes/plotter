@@ -134,8 +134,11 @@ class Toolbar(QtWidgets.QToolBar):
     def __init__(
         self,
         data_mediator: DataMediator,
+        ip_port: tuple[str, int],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.connect_widget = ConnectWidget(data_mediator, [192, 168, 4, 141], 65431)
+        ip, port = ip_port
+        ip_list = [int(i) for i in ip.split(".")]
+        self.connect_widget = ConnectWidget(data_mediator, ip_list, port)
         self.addWidget(self.connect_widget)

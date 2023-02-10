@@ -3,6 +3,7 @@ import numpy as np
 import mainwindow
 from datamediator import DataMediator, DataType, DataSource
 from remotereader import LogDownloader
+from datatypes import DataSet
 
 HOST = "192.168.4.141"
 PORT = 65431
@@ -13,6 +14,7 @@ def main():
     data_source = DataMediator(DataSource.Archive)
     archive = LogDownloader()
     data_source.set_archive(DataType.CPU_TEMP, *archive.get_latest_archive())
+    window = mainwindow.MainWindow(data_source, (HOST, PORT))
     gather_data(archive, data_source)
     plot_updater = PlotUpdater(window)
 
