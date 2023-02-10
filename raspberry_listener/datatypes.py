@@ -1,5 +1,8 @@
 from typing import Callable, Any, Protocol
 from enum import Enum
+import numpy as np
+
+DataSet = tuple[np.ndarray, np.ndarray]
 
 
 class DataHandler(Protocol):

@@ -7,10 +7,7 @@ import matplotlib.dates
 class LineChart(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
-        # self.series = QtCharts.QLineSeries()
         self.chart = QtCharts.QChart()
-        # self.chart.addSeries(self.series)
-        # self.chart.createDefaultAxes()
         self._chart_view = QtCharts.QChartView(self.chart)
         layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(self._chart_view)
@@ -45,31 +42,30 @@ class LineChart(QtWidgets.QWidget):
     def toQDateTime(cls, timestamp: np.datetime64):
         return QtCore.QDateTime(cls.toDatetime(timestamp))
 
-    def update_graph(self, data: np.ndarray, title: str):
-        old_cnt = self._cnt
-        self._time, self._data, self._cnt = data
+    def update_graph(self, data: tuple[np.ndarray, np.ndarray], title: str):
+        if hasattr(self, "_data"):
+            old_cnt = self._data.size
+        else:
+            old_cnt = 0
+
+        self._time, self._data = data
         self._title = title
-        if self._cnt > 0:
-            # self.series.replaceNp(
-            #     self.vecToEpoch(self._time[: self._cnt]), self._data[: self._cnt]
-            # )
-            for i in range(old_cnt, self._cnt):
-                self.series.append(self.toEpoch(self._time[i]), self._data[i])
+        if self._data.size > 0:
+            vec = np.vectorize(self.toEpoch)
+            # for i in range(old_cnt, self._data.size):
+            #     self.series.append(self.toEpoch(self._time[i]), self._data[i])
+            self.series.appendNp(vec(self._time), self._data)
         self.chart.setTitle(self._title)
 
     def plot(self, **kwargs):
-        if self._cnt > 0 and self.isVisible():
+        if self._data.size > 0 and self.isVisible():
             ten_seconds = timedelta(seconds=10)
 
             self.xaxis.setRange(
                 self.toQDateTime(self.toDatetime(self._time[0]) - ten_seconds),
-                self.toQDateTime(
-                    self.toDatetime(self._time[self._cnt - 1]) + ten_seconds
-                ),
+                self.toQDateTime(self.toDatetime(self._time[-1]) + ten_seconds),
             )
-            self.yaxis.setRange(
-                np.min(self._data[: self._cnt]) - 1, np.max(self._data[: self._cnt] + 1)
-            )
+            self.yaxis.setRange(np.min(self._data) - 1, np.max(self._data) + 1)
             self._chart_view.repaint()
         # # self.series.appendNp(self._time[: self._cnt], self._data[: self._cnt])
         # # self.series.append(0, 1)
