@@ -1,7 +1,7 @@
 import socketclient
 import numpy as np
 from typing import Iterable
-from datatypes import DataType, DataHandler
+from datatypes import DataType, DataHandler, DataSet
 from datetime import datetime
 from enum import Enum, auto
 
@@ -56,9 +56,7 @@ class DataStore:
     def overwrite_data(self, data_type, timestamp_array, data_array):
         self._data[data_type] = (timestamp_array, data_array, data_array.size)
 
-    def _add_data_range(
-        self, data_type: DataType, new_arrays: tuple[np.ndarray, np.ndarray]
-    ):
+    def _add_data_range(self, data_type: DataType, new_arrays: DataSet):
         time_array, data_array, cnt = self._data[data_type]
         new_time_array, new_data_array = new_arrays
         bool_array = np.ones(data_array.size, dtype=np.bool_)
@@ -84,8 +82,9 @@ class DataStore:
         new_data_array = np.resize(data_array, new_size)
         self._data[data_type] = (new_time_array, new_data_array, cnt)
 
-    def get_data(self, data_type: DataType) -> tuple[np.ndarray, np.ndarray, int]:
-        return self._data[data_type]
+    def get_data(self, data_type: DataType) -> DataSet:
+        time, data, cnt = self._data[data_type]
+        return time[:cnt], data[:cnt]
 
 
 class DataSource(Enum):
@@ -114,7 +113,7 @@ class DataMediator:
     def client(self):
         return self._socketclient
 
-    def get_data(self, data_type: DataType) -> tuple[np.ndarray, np.ndarray, int]:
+    def get_data(self, data_type: DataType) -> DataSet:
         return self._datastore.get_data(data_type)
 
     def is_connected(self):
