@@ -70,21 +70,21 @@ class DrawWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
         self.figure = Figure(figsize=(5, 3))
         self.canvas = FigureCanvas(self.figure)
         self.plot_live = True
         self.rescale_plot = True
-        layout.addWidget(self.canvas)
-        navigation_layout = QtWidgets.QHBoxLayout()
-        navigation_layout.addWidget(
+        self.main_layout.addWidget(self.canvas)
+        self.navigation_layout = QtWidgets.QHBoxLayout()
+        self.navigation_layout.addWidget(
             NavigationToolbar(self.canvas, self, coordinates=False)
         )
-        navigation_layout.addWidget(RescalePlotButton(self))
-        navigation_layout.addWidget(SimplifyPlotSpinBox())
-        navigation_layout.addStretch(1)
-        navigation_layout.addWidget(FreezePlotButton(self))
-        layout.addLayout(navigation_layout)
+        self.navigation_layout.addWidget(RescalePlotButton(self))
+        self.navigation_layout.addWidget(SimplifyPlotSpinBox())
+        self.navigation_layout.addStretch(1)
+        self.navigation_layout.addWidget(FreezePlotButton(self))
+        self.main_layout.addLayout(self.navigation_layout)
 
         self.ax: Axes = self.figure.subplots(squeeze=False)[0][0]  # type: ignore
         self.plot_once = False
