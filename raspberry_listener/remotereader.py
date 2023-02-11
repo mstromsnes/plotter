@@ -10,7 +10,7 @@ class LogDownloader:
         self.time = "timestamp.npy"
         self.local_timestamp_file, self.local_cpu_file = self._download_archived_files()
 
-    def _download_archived_files(self):
+    def _download_archived_files(self) -> tuple[str, str]:
         with connection.Connection(
             "friendlynas", user="alaka", connect_kwargs={"password": "greendino"}
         ) as nas:

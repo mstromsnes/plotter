@@ -2,6 +2,7 @@ import socketclient
 import numpy as np
 from typing import Iterable
 from datatypes import DataType, DataHandler, DataSet
+from remotereader import LogDownloader
 from datetime import datetime
 from enum import Enum, auto
 
@@ -97,7 +98,7 @@ class DataMediator:
         self.source = source
         self._socketclient = None
         self._datastore = DataStore()
-        self._archive: dict[DataType, tuple[str, str]] = {}
+        self.archive = LogDownloader()
 
     def connect(self, host, port):
         if self.source is DataSource.Socket:
@@ -105,9 +106,6 @@ class DataMediator:
 
     def disconnect(self):
         self._socketclient = None
-
-    def set_archive(self, data_type: DataType, timestamp_file, data_file):
-        self._archive[data_type] = (timestamp_file, data_file)
 
     @property
     def client(self):
@@ -129,8 +127,7 @@ class DataMediator:
                         request, (timestamp, request.datatype(value))
                     )
             case DataSource.Archive:
-                if self._archive.get(request) is not None:
-                    time_file, data_file = self._archive[request]
-                    time = np.load(time_file)
-                    data = np.load(data_file)
-                    self._datastore.overwrite_data(request, time, data)
+                time_file, data_file = self.archive.get_latest_archive()
+                time = np.load(time_file)
+                data = np.load(data_file)
+                self._datastore.overwrite_data(request, time, data)
