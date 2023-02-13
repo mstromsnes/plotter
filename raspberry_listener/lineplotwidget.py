@@ -1,4 +1,4 @@
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtWidgets, QtGui, QtCore
 from datatypes import DataSet
 from drawwidget import DrawWidget
 from typing import Callable
@@ -6,6 +6,8 @@ from scipy.signal import medfilt
 
 
 class MedFilterButton(QtWidgets.QWidget):
+    valueChanged = QtCore.Signal(int)
+
     class OddSpinBox(QtWidgets.QSpinBox):
         def validate(self, text: str, pos: int):
             validator = QtGui.QIntValidator()
@@ -29,6 +31,7 @@ class MedFilterButton(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(self.spinbox)
         layout.addWidget(self.label)
+        self.spinbox.valueChanged.connect(self.valueChanged)
 
     def medfilt(self, data: DataSet) -> DataSet:
         x, y = data
@@ -44,22 +47,33 @@ class LinePlotWidget(DrawWidget):
         self.navigation_layout.insertWidget(-2, self.medfilt_spinbox)
         self.add_preprocessing_function(self.medfilt_spinbox.medfilt)
 
+        @QtCore.Slot()
+        def apply_preprocessing_and_plot():
+            self.update_graph(self._dataset, self._title)
+            self.plot()
+
+        self.medfilt_spinbox.valueChanged.connect(
+            lambda _: apply_preprocessing_and_plot()
+        )
+
     def add_preprocessing_function(self, func: Callable[[DataSet], DataSet]):
         self._preprocessing_functions.append(func)
 
-    def update_graph(self, data: DataSet, title: str):
-        for func in self._preprocessing_functions:
-            data = func(data)
-        self._time, self._data = data
+    def update_graph(self, dataset: DataSet, title: str):
+        self._dataset = dataset
         self._title = title
 
     @DrawWidget.draw
     def plot(self, **kwargs):
+        dataset = self._dataset
+        for func in self._preprocessing_functions:
+            dataset = func(dataset)
+        time, data = dataset
         if self.line is not None:
-            self.line.set_xdata(self._time)
-            self.line.set_ydata(self._data)
-        elif self._data.size > 0 or self._initial_kwargs != kwargs:
-            (self.line,) = self.ax.plot(self._time, self._data, **kwargs)
+            self.line.set_xdata(time)
+            self.line.set_ydata(data)
+        elif data.size > 0 or self._initial_kwargs != kwargs:
+            (self.line,) = self.ax.plot(time, data, **kwargs)
             self._initial_kwargs = kwargs
 
         self.ax.set_title(self._title)
