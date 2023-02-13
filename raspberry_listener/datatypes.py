@@ -1,35 +1,28 @@
-from typing import Callable, Any, Protocol
+from typing import Callable, Any, Protocol, Self
 from enum import Enum
 import numpy as np
+from abc import ABC, abstractmethod
 
 DataSet = tuple[np.ndarray, np.ndarray]
 
 
-class DataHandler(Protocol):
-    def datatype(self, value: str) -> Any:
+class DataHandler(ABC, str):
+    @abstractmethod
+    def datatype(self) -> Callable[[str], Any]:
         ...
 
-    def request(self) -> str:
-        ...
 
-
-class CPUHandler:
-    def request(self) -> str:
-        return "cpu"
-
-    def datatype(self, value: str) -> float:
-        return float(value)
+class CPUHandler(DataHandler):
+    def datatype(self):
+        return float
 
 
 class DataType(Enum):
-    CPU_TEMP = CPUHandler()
+    CPU_TEMP = CPUHandler("CPU_Temp")
 
-    @property
-    def value(self) -> DataHandler:
-        return super().value
+    def datatype(self):
+        return self.value.datatype()
 
-    def datatype(self, value: str):
-        return self.value.datatype(value)
-
-    def request(self) -> str:
-        return self.value.request()
+    @classmethod
+    def to_set(cls) -> set[DataHandler]:
+        return set((member.value for _, member in cls.__members__.items()))
