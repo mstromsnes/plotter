@@ -12,6 +12,8 @@ matplotlib = "^3.6.3"
 PySide6 = "^6.4.2"
 numpy = "^1.24.2"
 fabric = "^3.0.0"
+pandas = "^1.5.3"
+fastparquet = "^2023.2.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
