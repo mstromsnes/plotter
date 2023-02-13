@@ -89,5 +89,5 @@ class DrawWidget(QtWidgets.QWidget):
         self.ax: Axes = self.figure.subplots(squeeze=False)[0][0]  # type: ignore
         self.plot_once = False
 
-    def plot(self):
+    def plot(self, *args, **kwargs):
         ...

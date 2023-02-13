@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets, QtGui, QtCore
 from datamediator import DataMediator
-from datatypes import DataSet
+from datatypes import DataSet, DataType
 from toolbar import Toolbar
 from lineplotwidget import LinePlotWidget
 
@@ -13,7 +13,7 @@ class MainWindow(QtWidgets.QMainWindow):
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.plotwidget = LinePlotWidget()
+        self.plotwidget = LinePlotWidget(DataType.CPU_TEMP)
         self.tool_bar = Toolbar(data_mediator, ip_port)
         self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.addTab(self.plotwidget, "Matplotlib")

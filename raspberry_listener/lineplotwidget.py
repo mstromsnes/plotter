@@ -1,8 +1,11 @@
 from PySide6 import QtWidgets, QtGui, QtCore
-from datatypes import DataSet
+from datatypes import DataSet, DataType
 from drawwidget import DrawWidget
+import numpy as np
 from typing import Callable
 from scipy.signal import medfilt
+
+UnpackedDataSet = tuple[np.ndarray, np.ndarray]
 
 
 class MedFilterButton(QtWidgets.QWidget):
@@ -21,8 +24,9 @@ class MedFilterButton(QtWidgets.QWidget):
                 return QtGui.QValidator.State.Acceptable
             return QtGui.QValidator.State.Invalid
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, datatype, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
+        self.datatype = datatype
         self.spinbox = self.OddSpinBox()
         self.label = QtWidgets.QLabel("Median Filter")
         self.spinbox.setValue(1)
@@ -33,30 +37,26 @@ class MedFilterButton(QtWidgets.QWidget):
         layout.addWidget(self.label)
         self.spinbox.valueChanged.connect(self.valueChanged)
 
-    def medfilt(self, data: DataSet) -> DataSet:
+    def medfilt(self, data: UnpackedDataSet) -> UnpackedDataSet:
         x, y = data
         return x, medfilt(y, self.spinbox.value())
 
 
 class LinePlotWidget(DrawWidget):
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, datatype: DataType, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
+        self.datatype = datatype
         self.line = None
         self._preprocessing_functions = []
-        self.medfilt_spinbox = MedFilterButton()
+        self.medfilt_spinbox = MedFilterButton(self.datatype)
         self.navigation_layout.insertWidget(-2, self.medfilt_spinbox)
         self.add_preprocessing_function(self.medfilt_spinbox.medfilt)
 
-        @QtCore.Slot()
-        def apply_preprocessing_and_plot():
-            self.update_graph(self._dataset, self._title)
-            self.plot()
+        self.medfilt_spinbox.valueChanged.connect(self.plot)
 
-        self.medfilt_spinbox.valueChanged.connect(
-            lambda _: apply_preprocessing_and_plot()
-        )
-
-    def add_preprocessing_function(self, func: Callable[[DataSet], DataSet]):
+    def add_preprocessing_function(
+        self, func: Callable[[UnpackedDataSet], UnpackedDataSet]
+    ):
         self._preprocessing_functions.append(func)
 
     def update_graph(self, dataset: DataSet, title: str):
@@ -64,7 +64,7 @@ class LinePlotWidget(DrawWidget):
         self._title = title
 
     @DrawWidget.draw
-    def plot(self, **kwargs):
+    def plot(self, *args, **kwargs):
         dataset = self._dataset
         for func in self._preprocessing_functions:
             dataset = func(dataset)
