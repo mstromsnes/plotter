@@ -45,8 +45,8 @@ class PlotUpdater:
         if data_tuple[0].size > 0:
             last_timestamp = data_tuple[0][-1]
             if self._last_timestamp != last_timestamp:
-                self.window.plotwidget.update_graph(data_tuple, "CPU TEMP")
-            self.window.plotwidget.plot()
+                self.window.update_data(data_tuple, "CPU TEMP")
+            self.window.plot()
             self._last_timestamp = last_timestamp
 
 
