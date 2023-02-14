@@ -1,11 +1,8 @@
 from PySide6 import QtWidgets, QtGui, QtCore
 from datatypes import DataSet, DataType
-from drawwidget import DrawWidget
-import numpy as np
-from typing import Callable
+from drawwidget import DrawWidget, UnpackedDataSet
+from matplotlib import rcParams
 from scipy.signal import medfilt
-
-UnpackedDataSet = tuple[np.ndarray, np.ndarray]
 
 
 class MedFilterButton(QtWidgets.QWidget):
@@ -42,22 +39,31 @@ class MedFilterButton(QtWidgets.QWidget):
         return x, medfilt(y, self.spinbox.value())
 
 
+class SimplifyPlotSpinBox(QtWidgets.QDoubleSpinBox):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.setValue(rcParams["path.simplify_threshold"])
+        self.valueChanged.connect(self.update_threshold)
+        self.setSingleStep(0.1)
+        self.setMinimum(0)
+        self.setMaximum(1)
+
+    @QtCore.Slot(float)
+    def update_threshold(self, v):
+        rcParams["path.simplify_threshold"] = v
+
+
 class LinePlotWidget(DrawWidget):
     def __init__(self, datatype: DataType, parent: QtWidgets.QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.datatype = datatype
         self.line = None
-        self._preprocessing_functions = []
         self.medfilt_spinbox = MedFilterButton(self.datatype)
-        self.navigation_layout.insertWidget(-2, self.medfilt_spinbox)
-        self.add_preprocessing_function(self.medfilt_spinbox.medfilt)
+        self.navigation_layout.addWidget(SimplifyPlotSpinBox())
+        self.navigation_layout.addWidget(self.medfilt_spinbox)
+        self.add_postprocessing_function(self.medfilt_spinbox.medfilt)
 
         self.medfilt_spinbox.valueChanged.connect(self.plot)
-
-    def add_preprocessing_function(
-        self, func: Callable[[UnpackedDataSet], UnpackedDataSet]
-    ):
-        self._preprocessing_functions.append(func)
 
     def update_graph(self, dataset: DataSet, title: str):
         self._dataset = dataset
@@ -66,7 +72,7 @@ class LinePlotWidget(DrawWidget):
     @DrawWidget.draw
     def plot(self, *args, **kwargs):
         dataset = self._dataset
-        for func in self._preprocessing_functions:
+        for func in self._postprocessing_functions:
             dataset = func(dataset)
         time, data = dataset
         if self.line is not None:
