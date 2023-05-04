@@ -3,8 +3,11 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
-from matplotlib import rcParams
 from functools import wraps
+import numpy as np
+from typing import Callable
+
+UnpackedDataSet = tuple[np.ndarray, np.ndarray]
 
 
 class FreezePlotButton(QtWidgets.QPushButton):
@@ -39,20 +42,6 @@ class RescalePlotButton(QtWidgets.QCheckBox):
         self.plot_widget.rescale_plot = checked
 
 
-class SimplifyPlotSpinBox(QtWidgets.QDoubleSpinBox):
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
-        super().__init__(parent)
-        self.setValue(rcParams["path.simplify_threshold"])
-        self.valueChanged.connect(self.update_threshold)
-        self.setSingleStep(0.1)
-        self.setMinimum(0)
-        self.setMaximum(1)
-
-    @QtCore.Slot(float)
-    def update_threshold(self, v):
-        rcParams["path.simplify_threshold"] = v
-
-
 class DrawWidget(QtWidgets.QWidget):
     @staticmethod
     def draw(func):
@@ -67,27 +56,32 @@ class DrawWidget(QtWidgets.QWidget):
 
         return wrapper
 
-    def __init__(self, parent=None):
+    def __init__(self, rescale_plot=True, parent=None):
         super().__init__(parent)
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.figure = Figure(figsize=(5, 3))
         self.canvas = FigureCanvas(self.figure)
         self.plot_live = True
-        self.rescale_plot = True
+        self.rescale_plot = rescale_plot
         self.main_layout.addWidget(self.canvas)
         self.navigation_layout = QtWidgets.QHBoxLayout()
         self.navigation_layout.addWidget(
             NavigationToolbar(self.canvas, self, coordinates=False)
         )
         self.navigation_layout.addWidget(RescalePlotButton(self))
-        self.navigation_layout.addWidget(SimplifyPlotSpinBox())
         self.navigation_layout.addStretch(1)
         self.navigation_layout.addWidget(FreezePlotButton(self))
         self.main_layout.addLayout(self.navigation_layout)
 
         self.ax: Axes = self.figure.subplots(squeeze=False)[0][0]  # type: ignore
         self.plot_once = False
+        self._postprocessing_functions = []
 
-    def plot(self):
+    def add_postprocessing_function(
+        self, func: Callable[[UnpackedDataSet], UnpackedDataSet]
+    ):
+        self._postprocessing_functions.append(func)
+
+    def plot(self, *args, **kwargs):
         ...

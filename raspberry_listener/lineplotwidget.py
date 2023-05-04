@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets, QtGui, QtCore
-from datatypes import DataSet
-from drawwidget import DrawWidget
-from typing import Callable
+from datatypes import DataSet, DataType
+from drawwidget import DrawWidget, UnpackedDataSet
+from matplotlib import rcParams
 from scipy.signal import medfilt
 
 
@@ -21,8 +21,9 @@ class MedFilterButton(QtWidgets.QWidget):
                 return QtGui.QValidator.State.Acceptable
             return QtGui.QValidator.State.Invalid
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, datatype, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
+        self.datatype = datatype
         self.spinbox = self.OddSpinBox()
         self.label = QtWidgets.QLabel("Median Filter")
         self.spinbox.setValue(1)
@@ -33,40 +34,45 @@ class MedFilterButton(QtWidgets.QWidget):
         layout.addWidget(self.label)
         self.spinbox.valueChanged.connect(self.valueChanged)
 
-    def medfilt(self, data: DataSet) -> DataSet:
+    def medfilt(self, data: UnpackedDataSet) -> UnpackedDataSet:
         x, y = data
         return x, medfilt(y, self.spinbox.value())
 
 
-class LinePlotWidget(DrawWidget):
+class SimplifyPlotSpinBox(QtWidgets.QDoubleSpinBox):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
+        self.setValue(rcParams["path.simplify_threshold"])
+        self.valueChanged.connect(self.update_threshold)
+        self.setSingleStep(0.1)
+        self.setMinimum(0)
+        self.setMaximum(1)
+
+    @QtCore.Slot(float)
+    def update_threshold(self, v):
+        rcParams["path.simplify_threshold"] = v
+
+
+class LinePlotWidget(DrawWidget):
+    def __init__(self, datatype: DataType, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent=parent)
+        self.datatype = datatype
         self.line = None
-        self._preprocessing_functions = []
-        self.medfilt_spinbox = MedFilterButton()
-        self.navigation_layout.insertWidget(-2, self.medfilt_spinbox)
-        self.add_preprocessing_function(self.medfilt_spinbox.medfilt)
+        self.medfilt_spinbox = MedFilterButton(self.datatype)
+        self.navigation_layout.addWidget(SimplifyPlotSpinBox())
+        self.navigation_layout.addWidget(self.medfilt_spinbox)
+        self.add_postprocessing_function(self.medfilt_spinbox.medfilt)
 
-        @QtCore.Slot()
-        def apply_preprocessing_and_plot():
-            self.update_graph(self._dataset, self._title)
-            self.plot()
-
-        self.medfilt_spinbox.valueChanged.connect(
-            lambda _: apply_preprocessing_and_plot()
-        )
-
-    def add_preprocessing_function(self, func: Callable[[DataSet], DataSet]):
-        self._preprocessing_functions.append(func)
+        self.medfilt_spinbox.valueChanged.connect(self.plot)
 
     def update_graph(self, dataset: DataSet, title: str):
         self._dataset = dataset
         self._title = title
 
     @DrawWidget.draw
-    def plot(self, **kwargs):
+    def plot(self, *args, **kwargs):
         dataset = self._dataset
-        for func in self._preprocessing_functions:
+        for func in self._postprocessing_functions:
             dataset = func(dataset)
         time, data = dataset
         if self.line is not None:

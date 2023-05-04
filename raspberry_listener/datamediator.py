@@ -1,6 +1,6 @@
 import socketclient
 import numpy as np
-from typing import Iterable
+import pandas as pd
 from datatypes import DataType, DataHandler, DataSet
 from remotereader import LogDownloader
 from datetime import datetime
@@ -30,11 +30,13 @@ class DataStore:
 
     def __init__(self):
         time_array = np.zeros(1024, dtype=datetime)
-        float_array = np.zeros(1024, dtype=float)
-        int_array = np.zeros(1024, dtype=int)
-        self._data: dict[DataType, tuple[np.ndarray, np.ndarray, int]] = {
-            DataType.CPU_TEMP: (np.copy(time_array), np.copy(float_array), 0)
-        }
+        self._data: dict[DataType, tuple[np.ndarray, np.ndarray, int]] = dict()
+        for type in DataType:
+            self._data[type] = (
+                np.copy(time_array),
+                np.zeros(1024, dtype=type.datatype()),
+                0,
+            )
 
     @_changed_points_only
     def append(self, data_type: DataType, data_point: DataPoint):
@@ -44,7 +46,7 @@ class DataStore:
             _, data_array, cnt = self._data[data_type]
         self._add_data_point(data_type, data_point)
 
-    def extend(self, data_type: DataType, data_range: tuple[Iterable, Iterable]):
+    def extend(self, data_type: DataType, data_range: DataSet):
         time_array, data_array, cnt = self._data[data_type]
         new_time, new_data = data_range
         new_data_array = np.array(new_data)
@@ -97,8 +99,8 @@ class DataMediator:
     def __init__(self, source: DataSource):
         self.source = source
         self._socketclient = None
-        self._datastore = DataStore()
         self.archive = LogDownloader()
+        self._datastore = DataStore()
 
     def connect(self, host, port):
         if self.source is DataSource.Socket:
@@ -121,13 +123,34 @@ class DataMediator:
         match self.source:
             case DataSource.Socket:
                 if self._socketclient is not None:
-                    timestamp, value = self._socketclient.get_value(request.request())
+                    timestamp, value = self._socketclient.get_value(request.value)
 
                     self._datastore.append(
-                        request, (timestamp, request.datatype(value))
+                        request, (timestamp, request.datatype()(value))
                     )
             case DataSource.Archive:
-                time_file, data_file = self.archive.get_latest_archive()
-                time = np.load(time_file)
-                data = np.load(data_file)
-                self._datastore.overwrite_data(request, time, data)
+                dataset = self._read_parquet_latest_archive()
+                unpacked_dataset = self._unpack_dataframe(dataset)
+                self._datastore.overwrite_data(
+                    request, unpacked_dataset["index"], unpacked_dataset[request.value]
+                )
+
+    def _read_parquet_latest_archive(self):
+        """Pandas and parquet are used to archive the data. Pandas serve as the interface to parquet, a binary file format supporting compression suitable for storage.
+        Pandas dataframes are suitable for storing live incoming data, as adding new data is cumbersome. The unpacked numpy arrays are much more suitable for this.
+        """
+        return pd.read_parquet(self.archive.get_latest_archive())
+
+    @staticmethod
+    def _unpack_dataframe(dataframe: pd.DataFrame):
+        df_as_dict = {}
+        df_as_dict["index"] = dataframe.index.to_numpy(dtype=np.datetime64)
+        for column in dataframe.columns:
+            if column in DataType.to_set():
+                dtype = DataType(column).datatype()
+                df_as_dict[column] = dataframe[column].to_numpy(dtype=dtype)
+            else:
+                raise NotImplementedError(
+                    "Dataframe contains a datatype not handled by the program"
+                )
+        return df_as_dict

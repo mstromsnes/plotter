@@ -15,7 +15,12 @@ def main():
     plot_updater = PlotUpdater(window)
 
     data_collection_timer = QtCore.QTimer()
-    data_collection_timer.timeout.connect(lambda: gather_data(data_source))
+
+    def gather_and_plot():
+        gather_data(data_source)
+        plot_updater.plot(data_source.get_data(DataType.CPU_TEMP))
+
+    data_collection_timer.timeout.connect(gather_and_plot)
     data_collection_timer.timeout.emit()
     data_collection_timer.start(5000)
     window.resize(800, 600)
@@ -40,8 +45,8 @@ class PlotUpdater:
         if data_tuple[0].size > 0:
             last_timestamp = data_tuple[0][-1]
             if self._last_timestamp != last_timestamp:
-                self.window.plotwidget.update_graph(data_tuple, "CPU TEMP")
-                self.window.plotwidget.plot()
+                self.window.update_data(data_tuple, "CPU TEMP")
+            self.window.plot()
             self._last_timestamp = last_timestamp
 
 
