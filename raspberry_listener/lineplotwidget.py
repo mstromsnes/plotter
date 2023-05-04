@@ -1,8 +1,10 @@
 from PySide6 import QtWidgets, QtGui, QtCore
-from datatypes import DataSet, DataType
+from datatypes import DataSet, DataHandler
 from drawwidget import DrawWidget, UnpackedDataSet
-from matplotlib import rcParams
+from matplotlib import rcParams, axes
 from scipy.signal import medfilt
+
+from matplotlib.ticker import MaxNLocator
 
 
 class MedFilterButton(QtWidgets.QWidget):
@@ -21,7 +23,7 @@ class MedFilterButton(QtWidgets.QWidget):
                 return QtGui.QValidator.State.Acceptable
             return QtGui.QValidator.State.Invalid
 
-    def __init__(self, datatype, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, datatype: DataHandler, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.datatype = datatype
         self.spinbox = self.OddSpinBox()
@@ -54,7 +56,13 @@ class SimplifyPlotSpinBox(QtWidgets.QDoubleSpinBox):
 
 
 class LinePlotWidget(DrawWidget):
-    def __init__(self, datatype: DataType, parent: QtWidgets.QWidget | None = None):
+    def __init__(
+        self,
+        datatype: DataHandler,
+        use_integer=False,
+        parent: QtWidgets.QWidget | None = None,
+        **kwargs
+    ):
         super().__init__(parent=parent)
         self.datatype = datatype
         self.line = None
@@ -64,6 +72,9 @@ class LinePlotWidget(DrawWidget):
         self.add_postprocessing_function(self.medfilt_spinbox.medfilt)
 
         self.medfilt_spinbox.valueChanged.connect(self.plot)
+        self.ax: axes.Axes = self.figure.add_subplot(**kwargs)
+        if use_integer:
+            self.ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     def update_graph(self, dataset: DataSet, title: str):
         self._dataset = dataset
@@ -83,3 +94,7 @@ class LinePlotWidget(DrawWidget):
             self._initial_kwargs = kwargs
 
         self.ax.set_title(self._title)
+
+    def _rescale(self):
+        self.ax.relim()
+        self.ax.autoscale()
