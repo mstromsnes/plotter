@@ -1,15 +1,12 @@
 from PySide6 import QtGui, QtCore, QtWidgets
 import mainwindow
-from datamediator import DataMediator, DataType, DataSource
-
-HOST = "192.168.4.141"
-PORT = 65431
+from datamediator import DataMediator, DataType
 
 
 def main():
     app = QtWidgets.QApplication()
-    data_source = DataMediator(DataSource.Archive)
-    window = mainwindow.MainWindow(data_source, (HOST, PORT))
+    data_source = DataMediator()
+    window = mainwindow.MainWindow(data_source)
 
     data_collection_timer = QtCore.QTimer()
 
@@ -31,8 +28,6 @@ def main():
 def gather_data(data_source: DataMediator):
     for datatype in DataType.to_set():
         data_source.gather_data(datatype)
-    # data_source.gather_data(DataType.MPU_TEMP)
-    # data_source.gather_data(DataType.DHT_TEMP)
 
 
 if __name__ == "__main__":

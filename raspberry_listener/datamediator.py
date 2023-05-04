@@ -1,10 +1,8 @@
-import socketclient
 import numpy as np
 import pandas as pd
 from datatypes import DataType, DataHandler, DataSet
 from remotereader import LogDownloader
 from datetime import datetime
-from enum import Enum, auto
 
 
 def _changed_points_only(func):
@@ -57,10 +55,10 @@ class DataStore:
         self._add_data_range(data_type, (new_time_array, new_data_array))
 
     def overwrite_data(self, data_type, timestamp_array, data_array):
-        timestamp_array, data_array = self.drop_nan(timestamp_array, data_array)
+        timestamp_array, data_array = self._drop_nan(timestamp_array, data_array)
         self._data[data_type] = (timestamp_array, data_array, data_array.size)
 
-    def drop_nan(self, timestamp_array, data_array):
+    def _drop_nan(self, timestamp_array, data_array):
         finite_data = np.isfinite(data_array)
         timestamp_array = timestamp_array[finite_data]
         data_array = data_array[finite_data]
@@ -97,44 +95,21 @@ class DataStore:
         return DataSet(time[:cnt], data[:cnt])
 
 
-class DataSource(Enum):
-    Socket = auto()
-    Archive = auto()
-
-
 class DataMediator:
-    def __init__(self, source: DataSource):
-        self.source = source
-        self._socketclient = None
+    def __init__(self):
         self.archive = LogDownloader()
         self._datastore = DataStore()
-
-    def connect(self, host, port):
-        if self.source is DataSource.Socket:
-            self._socketclient = socketclient.Client(host, port)
-
-    def disconnect(self):
-        self._socketclient = None
-
-    @property
-    def client(self):
-        return self._socketclient
 
     def get_data(self, data_type: DataHandler) -> DataSet:
         return self._datastore.get_data(data_type)
 
-    def is_connected(self):
-        return True if self._socketclient is not None else False
-
     def gather_data(self, request: DataHandler):
-        match self.source:
-            case DataSource.Archive:
-                dataset = self._read_parquet_latest_archive()
-                unpacked_dataset = self._unpack_dataframe(dataset)
-                for df_name in request.dataframe_names:
-                    self._datastore.overwrite_data(
-                        request, unpacked_dataset["index"], unpacked_dataset[df_name]
-                    )
+        dataset = self._read_parquet_latest_archive()
+        unpacked_dataset = self._unpack_dataframe(dataset)
+        for df_name in request.dataframe_names:
+            self._datastore.overwrite_data(
+                request, unpacked_dataset["index"], unpacked_dataset[df_name]
+            )
 
     def _read_parquet_latest_archive(self):
         """Pandas and parquet are used to archive the data. Pandas serve as the interface to parquet, a binary file format supporting compression suitable for storage.
