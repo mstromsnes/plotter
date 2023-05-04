@@ -2,8 +2,8 @@ from PySide6 import QtWidgets, QtCore
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 from functools import wraps
+from datatypes import DataSet
 import numpy as np
 from typing import Callable
 
@@ -50,8 +50,7 @@ class DrawWidget(QtWidgets.QWidget):
             if self.plot_live and self.canvas.isVisible():
                 func(self, *args, **kwargs)
                 if self.rescale_plot:
-                    self.ax.relim()
-                    self.ax.autoscale()
+                    self._rescale()
                 self.canvas.draw_idle()
 
         return wrapper
@@ -74,9 +73,11 @@ class DrawWidget(QtWidgets.QWidget):
         self.navigation_layout.addWidget(FreezePlotButton(self))
         self.main_layout.addLayout(self.navigation_layout)
 
-        self.ax: Axes = self.figure.subplots(squeeze=False)[0][0]  # type: ignore
         self.plot_once = False
         self._postprocessing_functions = []
+
+    def update_graph(self, dataset: DataSet, title: str):
+        ...
 
     def add_postprocessing_function(
         self, func: Callable[[UnpackedDataSet], UnpackedDataSet]
@@ -84,4 +85,7 @@ class DrawWidget(QtWidgets.QWidget):
         self._postprocessing_functions.append(func)
 
     def plot(self, *args, **kwargs):
+        ...
+
+    def _rescale(self):
         ...

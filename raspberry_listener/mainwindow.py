@@ -1,9 +1,8 @@
 from PySide6 import QtWidgets, QtGui, QtCore
 from datamediator import DataMediator
-from datatypes import DataSet, DataType
+from datatypes import DataType
 from toolbar import Toolbar
-from lineplotwidget import LinePlotWidget
-from histogramwidget import HistogramWidget
+from plottabwidget import PlotTabWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -14,19 +13,19 @@ class MainWindow(QtWidgets.QMainWindow):
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.linewidget = LinePlotWidget(DataType.CPU_TEMP)
-        self.histogramwidget = HistogramWidget(DataType.CPU_TEMP)
         self.tool_bar = Toolbar(data_mediator, ip_port)
         self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_widget.addTab(self.linewidget, "Line")
-        self.tab_widget.addTab(self.histogramwidget, "Histogram")
+        self.tab_widgets = {
+            datatype: PlotTabWidget(datatype, data_mediator)
+            for datatype in DataType.to_set()
+        }
+        for datatype in DataType.to_set():
+            self.tab_widget.addTab(self.tab_widgets[datatype], datatype.tab_name)
+        self.tab_widget.currentChanged.connect(self.update_plots)
+
         self.addToolBar(self.tool_bar)
         self.setCentralWidget(self.tab_widget)
 
-    def update_data(self, dataset: DataSet, title: str):
-        self.linewidget.update_graph(dataset, title)
-        self.histogramwidget.update_graph(dataset, title)
-
-    def plot(self):
-        self.linewidget.plot()
-        self.histogramwidget.plot(color="royalblue")
+    def update_plots(self):
+        for widget in self.tab_widgets.values():
+            widget.update_plot()
