@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtGui, QtCore
-from datatypes import DataSet, DataHandler
+from datatypes import DataSet, Sensor, SensorType
 from drawwidget import DrawWidget, UnpackedDataSet
 from matplotlib import rcParams, axes
 from scipy.signal import medfilt
@@ -23,9 +23,15 @@ class MedFilterButton(QtWidgets.QWidget):
                 return QtGui.QValidator.State.Acceptable
             return QtGui.QValidator.State.Invalid
 
-    def __init__(self, datatype: DataHandler, parent: QtWidgets.QWidget | None = None):
+    def __init__(
+        self,
+        sensor: Sensor,
+        sensor_type: SensorType,
+        parent: QtWidgets.QWidget | None = None,
+    ):
         super().__init__(parent)
-        self.datatype = datatype
+        self.sensor = sensor
+        self.sensor_type = sensor_type
         self.spinbox = self.OddSpinBox()
         self.label = QtWidgets.QLabel("Median Filter")
         self.spinbox.setValue(1)
@@ -58,15 +64,17 @@ class SimplifyPlotSpinBox(QtWidgets.QDoubleSpinBox):
 class LinePlotWidget(DrawWidget):
     def __init__(
         self,
-        datatype: DataHandler,
+        sensor: Sensor,
+        sensor_type: SensorType,
         use_integer=False,
         parent: QtWidgets.QWidget | None = None,
         **kwargs
     ):
         super().__init__(parent=parent)
-        self.datatype = datatype
+        self.sensor = sensor
+        self.sensor_type = sensor_type
         self.line = None
-        self.medfilt_spinbox = MedFilterButton(self.datatype)
+        self.medfilt_spinbox = MedFilterButton(self.sensor, self.sensor_type)
         self.navigation_layout.addWidget(SimplifyPlotSpinBox())
         self.navigation_layout.addWidget(self.medfilt_spinbox)
         self.add_postprocessing_function(self.medfilt_spinbox.medfilt)
