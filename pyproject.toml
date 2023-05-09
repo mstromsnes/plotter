@@ -15,6 +15,11 @@ fabric = "^3.0.0"
 pandas = "^1.5.3"
 fastparquet = "^2023.2.0"
 decorator = "^5.1.1"
+snakeviz = "^2.2.0"
+requests = "^2.30.0"
+pydantic = "^1.10.7"
+pandera = {extras = ["strategies"], version = "^0.14.5"}
+fastapi = "^0.95.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
