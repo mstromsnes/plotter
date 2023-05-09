@@ -1,12 +1,13 @@
 from PySide6 import QtGui, QtCore, QtWidgets
 import mainwindow
-from datamediator import DataMediator, DataType
+from datamediator import DataMediator
 
 
 def main():
     app = QtWidgets.QApplication()
     data_source = DataMediator()
     window = mainwindow.MainWindow(data_source)
+    # datathread = DataThread(data_source, window)
 
     data_collection_timer = QtCore.QTimer()
 
@@ -17,6 +18,8 @@ def main():
         gather_data(data_source)
         plot_data()
 
+    # data_collection_timer.timeout.connect(datathread.gather_data)
+    # datathread.finished.connect(window.update_plots)
     window.resize(800, 600)
     window.show()
     data_collection_timer.timeout.connect(gather_and_plot)
@@ -26,8 +29,7 @@ def main():
 
 
 def gather_data(data_source: DataMediator):
-    for datatype in DataType.to_set():
-        data_source.gather_data(datatype)
+    data_source.gather_data()
 
 
 if __name__ == "__main__":

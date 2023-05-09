@@ -1,36 +1,56 @@
 from PySide6 import QtWidgets, QtGui, QtCore
-from datatypes import DataSet, DataHandler
+from datatypes import DataSet, Sensor, SensorType
 from drawwidget import DrawWidget
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from collections import namedtuple
 import matplotlib.ticker
+import matplotlib as mpl
+from dataclasses import dataclass
 
 
 class IncompatibleDatatypeException(Exception):
     ...
 
 
+@dataclass
+class BinInfo:
+    counts: npt.ArrayLike
+    bins: npt.ArrayLike
+
+    def __post_init__(self):
+        self.difference_between_bins = np.diff(self.bins)[0]
+
+
 class TimeOfDayWidget(DrawWidget):
     MAX_BUCKETS = 16
-    _FALLBACK_STEP_SIZE = 2
+    colormap = mpl.colormaps["viridis"]
 
-    def __init__(self, datatype: DataHandler, parent: QtWidgets.QWidget | None = None):
-        if datatype.ndims != 1:
-            raise IncompatibleDatatypeException("Can only handle 1 dimensional data")
+    def __init__(
+        self,
+        sensor: Sensor,
+        sensor_type: SensorType,
+        parent: QtWidgets.QWidget | None = None,
+    ):
         super().__init__(rescale_plot=False, parent=parent)
-        self.datatype = datatype
+        self.sensor = sensor
+        self.sensor_type = sensor_type
         self.clocks = [
             self.figure.add_subplot(1, 2, 1, projection="polar"),
             self.figure.add_subplot(1, 2, 2, projection="polar"),
         ]
+        self._norm = mpl.colors.Normalize(0, 1)
 
     def update_graph(self, dataset: DataSet, title: str):
         dataframe = self._group_time_of_day(dataset)
         self._dataset = dataset
         self.sufficient_data = True
         try:
-            self._counts, self._bins = self._get_binned_count_by_hour(dataframe)
+            self._bins: BinInfo = self._get_binned_count_by_hour(dataframe)
+            self._norm = mpl.colors.Normalize(
+                self._dataset[1].min(), self._dataset[1].max()
+            )
         except KeyError:
             self.sufficient_data = False
         self._title = title
@@ -47,30 +67,37 @@ class TimeOfDayWidget(DrawWidget):
     def _get_binned_count_by_hour(self, dataframe: pd.DataFrame):
         """Return the counts of data in bins of width self.step_size for each hour"""
         counts = []
-        # min_bin = np.floor(dataframe.min() / self.step_size) * self.step_size
-        # max_bin = np.ceil(dataframe.max() / self.step_size) * self.step_size
-        # bins = list(np.arange(min_bin, max_bin + self.step_size, self.step_size))
         bins = self._dataset.bins(self.MAX_BUCKETS)
         for i in np.arange(24):
             data = dataframe[i]
             count, _ = np.histogram(data, bins=bins, density=True)
-            counts.append(
-                count * self._dataset.smallest_difference_between_unique_values
-            )
-        return np.array(counts), bins
+            counts.append(count)
+        return BinInfo(np.array(counts), bins)
+
+    def _label_maker(self, bin, offset):
+        if offset:
+            return None
+        if isinstance(
+            self._dataset.smallest_difference_between_unique_values, np.int64
+        ):
+            if (
+                self._dataset.smallest_difference_between_unique_values
+                == self._bins.difference_between_bins
+            ):
+                return f"{int(bin+self._bins.difference_between_bins/2.0):d}"
+            else:
+                return f"{int(bin):d}-{int(bin+self._bins.difference_between_bins-1):d}"
+
+        return f"{bin:.2f}-{bin+self._bins.difference_between_bins:.2f}"
 
     def _plot_clock(self, clock, offset, **kwargs):
         """Plot a single radial stacked barplot showing the temperature density for the hour"""
         bottom = np.zeros(12)
         Bound = namedtuple("Bound", ["lower", "upper"])
         hour_range = Bound(12 * offset, 12 * (offset + 1))  # (0,12) and (12,24)
-        data = self._counts[hour_range.lower : hour_range.upper]
-        for i, bin in enumerate(self._bins[:-1]):
-            label = (
-                f"{bin:.2f}-{bin+self._dataset.smallest_difference_between_unique_values:.2f}"
-                if not offset
-                else None
-            )
+        data = self._bins.counts[hour_range.lower : hour_range.upper]
+        for i, bin in enumerate(self._bins.bins[:-1]):
+            label = self._label_maker(bin, offset)
             theta = np.linspace(0, 2 * np.pi, 12, endpoint=False)
             width = theta[1] - theta[0]
             clock.bar(
@@ -80,6 +107,7 @@ class TimeOfDayWidget(DrawWidget):
                 bottom=bottom,
                 label=label,
                 align="edge",
+                color=self.colormap(self._norm(bin)),
                 **kwargs,
             )
             bottom += data.T[i]

@@ -1,9 +1,13 @@
-from typing import Callable, Any, Protocol, Self, Iterable
 from enum import Enum
 import numpy as np
 import numpy.typing as npt
+from pydantic import BaseModel, validator
+import pandera as pa
+from pandera.typing import DataFrame, Series, Index
+from pandera.api.extensions import register_check_method
+from datetime import datetime
 
-# from abc import ABC, abstractmethod
+
 from math import ceil
 from functools import cache
 
@@ -34,7 +38,7 @@ class DataSet(tuple):
     def smallest_difference_between_unique_values(self) -> float | int:
         return np.diff(np.unique(self[1])).min()
 
-    def bins(self, bincount) -> npt.ArrayLike | None:
+    def bins(self, bincount) -> npt.ArrayLike:
         discretization = self.smallest_difference_between_unique_values
         while self._reduced_dynamic_range(discretization) > bincount:
             # Limits the number of buckets to maximally bincount. Doesn't guarantee bincount buckets, but nearest lower power of 2.
@@ -52,133 +56,74 @@ class DataSet(tuple):
         return hash(sum(self[1][-5:]) * 10 * len(self[1]))
 
 
-class DataHandler(Protocol):
-    def datatype(self) -> npt.DTypeLike:
-        ...
-
-    @property
-    def ndims(self) -> int:
-        ...
-
-    @property
-    def dataframe_names(self) -> list[str]:
-        ...
-
-    @property
-    def tab_name(self) -> str:
-        ...
-
-
-class CPUHandler:
-    @property
-    def ndims(self):
-        return 1
-
-    def datatype(self):
-        return float
-
-    @property
-    def dataframe_names(self):
-        return ["PI_CPU_Temp"]
-
-    @property
-    def tab_name(self):
-        return "PI CPU"
-
-
-class MPUHandler:
-    @property
-    def ndims(self):
-        return 1
-
-    def datatype(self):
-        return float
-
-    @property
-    def dataframe_names(self):
-        return ["MPU_Temp"]
-
-    @property
-    def tab_name(self):
-        return "MPU"
-
-
-class DS18B20Handler:
-    @property
-    def ndims(self):
-        return 1
-
-    def datatype(self):
-        return float
-
-    @property
-    def dataframe_names(self) -> list[str]:
-        return ["DS18B20_Temp"]
-
-    @property
-    def tab_name(self):
-        return "DS18B20"
-
-
-class DHT11TemperatureHandler:
-    @property
-    def ndims(self):
-        return 1
-
-    def datatype(self):
-        return int
-
-    @property
-    def dataframe_names(self):
-        return ["DHT11_Temp"]
-
-    @property
-    def tab_name(self):
-        return "DHT_T"
-
-
-class DHT11HumidityHandler:
-    @property
-    def ndims(self):
-        return 1
-
-    def datatype(self):
-        return int
-
-    @property
-    def dataframe_names(self):
-        return ["DHT11_Humidity"]
-
-    @property
-    def tab_name(self):
-        return "DHT_H"
-
-
-class MPUAccelHandler:
-    @property
-    def ndims(self):
-        return 3
-
-    def datatype(self):
-        return float
-
-    @property
-    def dataframe_names(self):
-        return ["mpu_accel_x", "mpu_accel_y", "mpu_accel_z"]
-
-    @property
-    def tab_name(self):
-        return "MPU_Accel"
-
-
-class DataType(Enum):
-    CPU_TEMP = CPUHandler()
-    DHT_TEMP = DHT11TemperatureHandler()
-    DHT_HUMIDITY = DHT11HumidityHandler()
-    DS18B20_TEMP = DS18B20Handler()
-    # MPU_TEMP = MPUHandler()
-    # MPU_ACCEL = MPUAccelHandler()
+class MemberStrEnum(Enum):
+    """A workaround to get valid str values from the enum. Python 3.12 will allow us to test for values directly"""
 
     @classmethod
-    def to_set(cls) -> set[DataHandler]:
-        return set((member.value for _, member in cls.__members__.items()))
+    def values(cls) -> list[str]:
+        return [member.value for member in cls]
+
+
+class Sensor(MemberStrEnum):
+    DHT11 = "DHT11"
+    PITEMP = "PI_CPU"
+    DS18B20 = "DS18B20"
+
+
+class SensorType(MemberStrEnum):
+    Temperature = "temperature"
+    Humidity = "humidity"
+
+
+class Unit(MemberStrEnum):
+    Celsius = "C"
+    RelativeHumidity = "%"
+
+
+@register_check_method(statistics=["enum"])
+def is_in_enum(df, *, enum: MemberStrEnum):
+    return df.isin(enum.values())
+
+
+class SensorData(pa.DataFrameModel):
+    sensor_type: Index[str] = pa.Field(
+        is_in_enum=SensorType,
+    )
+    sensor: Index[str] = pa.Field(is_in_enum=Sensor)
+    timestamp: Index[pa.DateTime] = pa.Field(check_name=True)
+
+    reading: Series[float]
+    unit: Series[str] = pa.Field(is_in_enum=Unit)
+
+
+class SensorReading(BaseModel):
+    timestamp: datetime
+    sensor_type: str
+    sensor: str
+
+    reading: float
+    unit: str
+
+    @validator("sensor")
+    @classmethod
+    def is_in_sensor(cls, v):
+        if v not in Sensor.values():
+            raise ValueError("Not a legitimate Sensor value")
+        return v
+
+    @validator("unit")
+    @classmethod
+    def is_in_unit(cls, v):
+        if v not in Unit.values():
+            raise ValueError("Not a legitimate Unit value")
+        return v
+
+    @validator("sensor_type")
+    @classmethod
+    def is_in_sensor_type(cls, v):
+        if v not in SensorType.values():
+            raise ValueError("Not a legitimate SensorType value")
+        return v
+
+    _indexes = ["timestamp", "sensor", "sensor_type"]
+    _columns = ["reading", "unit"]
