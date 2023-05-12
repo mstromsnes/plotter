@@ -42,6 +42,7 @@ class PlotTabWidget(QtWidgets.QTabWidget):
 
     def update_plot(self):
         dataset = self.datasource.get_data(self.sensor, self.sensor_type)
-        self.linewidget_manager.plot(dataset)
-        self.histogramwidget_manager.plot(dataset)
-        # self.time_of_day_widget_manager.plot(dataset)
+        if dataset is not None:
+            self.linewidget_manager.plot(dataset)
+            self.histogramwidget_manager.plot(dataset)
+            # self.time_of_day_widget_manager.plot(dataset)

@@ -17,17 +17,22 @@ class MainWindow(QtWidgets.QMainWindow):
     ):
         super().__init__(parent)
         self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_widgets = {}
+        self.tab_widgets: dict[tuple[Sensor, SensorType], PlotTabWidget] = {}
         for sensor_type, sensors in self.sensors.items():
             for sensor in sensors:
                 tab = PlotTabWidget(sensor, sensor_type, data_mediator)
                 self.tab_widgets[sensor, sensor_type] = tab
                 tab_name = f"{sensor.value} {sensor_type.value.capitalize()}"
                 self.tab_widget.addTab(tab, tab_name)
-        self.tab_widget.currentChanged.connect(self.update_plots)
+        self.tab_widget.currentChanged.connect(self.update_visible_plot)
 
         self.setCentralWidget(self.tab_widget)
 
     def update_plots(self):
         for widget in self.tab_widgets.values():
             widget.update_plot()
+
+    def update_visible_plot(self):
+        for widget in self.tab_widgets.values():
+            if widget.isVisible():
+                widget.update_plot()
