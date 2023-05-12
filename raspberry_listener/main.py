@@ -1,5 +1,6 @@
 from PySide6 import QtGui, QtCore, QtWidgets
 import mainwindow
+from datathread import DataThread
 from datamediator import DataMediator
 import logging
 
@@ -8,22 +9,15 @@ def main():
     app = QtWidgets.QApplication()
     data_source = DataMediator()
     window = mainwindow.MainWindow(data_source)
-    # datathread = DataThread(data_source, window)
+    datathread = DataThread(data_source, window)
 
     data_collection_timer = QtCore.QTimer()
 
-    def plot_data():
-        window.update_plots()
-
-    def gather_and_plot():
-        gather_data(data_source)
-        plot_data()
-
-    # data_collection_timer.timeout.connect(datathread.gather_data)
-    # datathread.finished.connect(window.update_plots)
+    data_collection_timer.timeout.connect(datathread.gather_data)
+    datathread.finished.connect(window.update_visible_plot)
     window.resize(800, 600)
     window.show()
-    data_collection_timer.timeout.connect(gather_and_plot)
+    window.update_plots()
     data_collection_timer.timeout.emit()
     data_collection_timer.start(5000)
     app.exec()
