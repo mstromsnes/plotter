@@ -1,10 +1,16 @@
 import requests
 from fastapi import HTTPException
 from io import BytesIO
+from enum import Enum
 import logging
 
 
 logger = logging.getLogger("remotereader")
+
+class Format(Enum):
+    Parquet = "parquet/"
+    JSON = "json/"
+
     if response.status_code != 200:
         raise HTTPException(response.status_code, response.json())
     log_response(response)
