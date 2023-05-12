@@ -1,6 +1,7 @@
 from PySide6 import QtGui, QtCore, QtWidgets
 import mainwindow
 from datamediator import DataMediator
+import logging
 
 
 def main():
@@ -33,4 +34,9 @@ def gather_data(data_source: DataMediator):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     main()
