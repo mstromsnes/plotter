@@ -30,7 +30,7 @@ def main():
 
 
 def gather_data(data_source: DataMediator):
-    data_source.gather_data()
+    data_source.merge_new_data_into_dataframe()
 
 
 if __name__ == "__main__":
