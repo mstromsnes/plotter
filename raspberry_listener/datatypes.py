@@ -2,9 +2,9 @@ from enum import Enum
 import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, validator
+import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame, Series, Index
-from pandera.api.extensions import register_check_method
+from pandera.typing import Series, Index
 from datetime import datetime
 
 
@@ -80,26 +80,47 @@ class Unit(MemberStrEnum):
     RelativeHumidity = "%"
 
 
-@register_check_method(statistics=["enum"])
-def is_in_enum(df, *, enum: MemberStrEnum):
-    return df.isin(enum.values())
+def make_dtype_kwargs(enum):
+    return {"categories": enum.values(), "ordered": False}
 
 
 class SensorData(pa.DataFrameModel):
-    sensor_type: Index[str] = pa.Field(
-        is_in_enum=SensorType,
+    sensor_type: Index[pd.CategoricalDtype] = pa.Field(
+        dtype_kwargs=make_dtype_kwargs(SensorType), isin=SensorType.values()
     )
-    sensor: Index[str] = pa.Field(is_in_enum=Sensor)
-    timestamp: Index[pa.DateTime] = pa.Field(check_name=True)
+    sensor: Index[pd.CategoricalDtype] = pa.Field(
+        dtype_kwargs=make_dtype_kwargs(Sensor), isin=Sensor.values()
+    )
+    timestamp: Index[pa.DateTime]
 
     reading: Series[float]
-    unit: Series[str] = pa.Field(is_in_enum=Unit)
+    unit: Series[pd.CategoricalDtype] = pa.Field(
+        dtype_kwargs=make_dtype_kwargs(Unit), isin=Unit.values()
+    )
+
+    @classmethod
+    def repair_dataframe(cls, df) -> pd.DataFrame:
+        """The dataframe multiindex doesn't save correctly in parquet. The categorical types are dropped. To fix this, the index is first reset before saving, making them regular columns.
+        The columns do preserve the categorical types."""
+        df = cls._convert_columns(df)
+        df = df.set_index(SensorReading._indexes, drop=True)
+        return df
+
+    @staticmethod
+    def _convert_columns(df: pd.DataFrame) -> pd.DataFrame:
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["sensor_type"] = pd.Categorical(
+            df["sensor_type"], **make_dtype_kwargs(SensorType)
+        )
+        df["sensor"] = pd.Categorical(df["sensor"], **make_dtype_kwargs(Sensor))
+        df["unit"] = pd.Categorical(df["unit"], **make_dtype_kwargs(Unit))
+        return df
 
 
 class SensorReading(BaseModel):
-    timestamp: datetime
     sensor_type: str
     sensor: str
+    timestamp: datetime
 
     reading: float
     unit: str
@@ -125,5 +146,5 @@ class SensorReading(BaseModel):
             raise ValueError("Not a legitimate SensorType value")
         return v
 
-    _indexes = ["timestamp", "sensor", "sensor_type"]
+    _indexes = ["sensor_type", "sensor", "timestamp"]
     _columns = ["reading", "unit"]

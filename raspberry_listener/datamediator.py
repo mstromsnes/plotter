@@ -56,7 +56,9 @@ class DataMediator:
         raw_archive = download_archive(timestamp, format)
         match format:
             case Format.Parquet:
-                return pd.read_parquet(raw_archive).sort_index()
+                df = pd.read_parquet(raw_archive)
+                df = SensorData.repair_dataframe(df).sort_index()
+                return df
             case Format.JSON:
                 return pd.read_json(raw_archive, orient="table").sort_index()
             case _:
