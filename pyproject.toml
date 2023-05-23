@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "raspberry_listener"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.12"
+python = ">=3.10,<3.11.0 || >3.11.0,<3.12"
 matplotlib = "^3.6.3"
 PySide6 = "^6.4.2"
 numpy = "^1.24.2"
@@ -26,6 +26,9 @@ black = "^23.1.0"
 mypy = "^1.0.0"
 ipykernel = "^6.23.0"
 types-requests = "^2.30.0.0"
+snakeviz = "^2.2.0"
+scalene = "^1.5.21.2"
+polars = "^0.17.14"
 
 [build-system]
 requires = ["poetry-core"]
