@@ -1,13 +1,7 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-from functools import wraps
-from datatypes import DataSet
-import numpy as np
-from typing import Callable
-
-UnpackedDataSet = tuple[np.ndarray, np.ndarray]
 
 
 class FreezePlotButton(QtWidgets.QPushButton):
@@ -43,18 +37,6 @@ class RescalePlotButton(QtWidgets.QCheckBox):
 
 
 class DrawWidget(QtWidgets.QWidget):
-    @staticmethod
-    def draw(func):
-        @wraps(func)
-        def wrapper(self: "DrawWidget", *args, **kwargs):
-            if self.plot_live and self.canvas.isVisible():
-                func(self, *args, **kwargs)
-                if self.rescale_plot:
-                    self._rescale()
-                self.canvas.draw_idle()
-
-        return wrapper
-
     def __init__(self, rescale_plot=True, parent=None):
         super().__init__(parent)
 
@@ -63,7 +45,7 @@ class DrawWidget(QtWidgets.QWidget):
         self.canvas = FigureCanvas(self.figure)
         self.plot_live = True
         self.rescale_plot = rescale_plot
-        self.main_layout.addWidget(self.canvas)
+        self.main_layout.addWidget(self.canvas, stretch=1)
         self.navigation_layout = QtWidgets.QHBoxLayout()
         self.navigation_layout.addWidget(
             NavigationToolbar(self.canvas, self, coordinates=False)
@@ -73,19 +55,12 @@ class DrawWidget(QtWidgets.QWidget):
         self.navigation_layout.addWidget(FreezePlotButton(self))
         self.main_layout.addLayout(self.navigation_layout)
 
-        self.plot_once = False
-        self._postprocessing_functions = []
+    def add_axes(self, *args, subplot=True, **kwargs):
+        if subplot:
+            ax = self.figure.add_subplot(*args, **kwargs)
+        else:
+            ax = self.figure.add_axes(*args, **kwargs)
+        return ax
 
-    def update_graph(self, dataset: DataSet, title: str):
-        ...
-
-    def add_postprocessing_function(
-        self, func: Callable[[UnpackedDataSet], UnpackedDataSet]
-    ):
-        self._postprocessing_functions.append(func)
-
-    def plot(self, *args, **kwargs):
-        ...
-
-    def _rescale(self):
-        ...
+    def remove_axes(self, ax):
+        self.figure.delaxes(ax)
