@@ -93,3 +93,70 @@ class OneAxesPrStrategyPlotManager(PlotManager):
         del self._axes[strategy]
         self.plot()
 
+
+class OneAxesPrSensorTypeManager(PlotManager):
+    def __init__(self, widget: DrawWidget, title: str | None = None):
+        super().__init__(widget, title)
+        self._axes: dict[Hashable, Axes] = {}
+        self._plotting_strategies: dict[Hashable, dict[Hashable, PlotStrategy]] = {}
+        self.subplots = self._subplot_generator()
+
+    @property
+    def axes(self):
+        return self._axes.values()
+
+    @property
+    def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
+        return {
+            ax: list(self._plotting_strategies[key].values())
+            for key, ax in self._axes.items()
+        }
+
+    def add_plotting_strategy(
+        self, strategy: PlotStrategy, axes_key: Hashable, strategy_key: Hashable
+    ):
+        if axes_key not in self._axes:
+            try:
+                self._add_axes(
+                    axes_key,
+                    next(self.subplots),
+                    subplot=True,
+                    title=axes_key.value.capitalize(),
+                )
+            except GeneratorExit:
+                return
+        self._plotting_strategies[axes_key][strategy_key] = strategy
+        self.plot()
+
+    def remove_plotting_strategy(self, axes_key: Hashable, strategy_key: Hashable):
+        if axes_key in self._axes:
+            # If axes exist, delete the strategy from that axes
+            try:
+                artist = self._plotting_strategies[axes_key][strategy_key].artist
+                if isinstance(artist, Sequence):
+                    [art.remove() for art in artist]
+                elif isinstance(artist, Artist):
+                    artist.remove()
+            except AttributeError:
+                ...
+            del self._plotting_strategies[axes_key][strategy_key]
+        if not self._plotting_strategies[axes_key]:
+            # If dict of strategies for that axes is (now) empty, remove the axes completely
+            ax = self._axes[axes_key]
+            self.widget.remove_axes(ax)
+            del self._axes[axes_key]
+            del self._plotting_strategies[axes_key]
+
+        self.plot()
+
+    def _add_axes(self, key: Hashable, *args, subplot=True, **kwargs):
+        if key in self.axes:
+            raise KeyError(f"Axes already exist for this key {key}")
+        ax = self.widget.add_axes(*args, subplot=subplot, **kwargs)
+        self._axes[key] = ax
+        self._plotting_strategies[key] = dict()
+
+    def _subplot_generator(self):
+        while True:
+            yield 211
+            yield 212
