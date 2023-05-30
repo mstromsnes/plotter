@@ -1,4 +1,4 @@
-from PySide6 import QtWidgets, QtGui, QtCore
+from PySide6 import QtWidgets
 from datamediator import DataMediator
 from datatypes import Sensor, SensorType
 from plottabwidget import PlotTabWidget
@@ -17,13 +17,11 @@ class MainWindow(QtWidgets.QMainWindow):
     ):
         super().__init__(parent)
         self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_widgets: dict[tuple[Sensor, SensorType], PlotTabWidget] = {}
-        for sensor_type, sensors in self.sensors.items():
-            for sensor in sensors:
-                tab = PlotTabWidget(sensor, sensor_type, data_mediator)
-                self.tab_widgets[sensor, sensor_type] = tab
-                tab_name = f"{sensor.value} {sensor_type.value.capitalize()}"
-                self.tab_widget.addTab(tab, tab_name)
+        self.tab_widgets: dict[str, PlotTabWidget] = {}
+        tab = PlotTabWidget(data_mediator)
+        self.tab_widgets["line"] = tab
+        tab_name = f"Line Plot"
+        self.tab_widget.addTab(tab, tab_name)
         self.tab_widget.currentChanged.connect(self.update_visible_plot)
 
         self.setCentralWidget(self.tab_widget)

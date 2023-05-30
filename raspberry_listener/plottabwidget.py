@@ -1,48 +1,52 @@
-from PySide6 import QtWidgets, QtGui, QtCore
+from PySide6 import QtWidgets, QtCore
 from lineplotwidget import LinePlotWidget
-from histogramwidget import HistogramWidget
-from timeofdayhistogramwidget import TimeOfDayWidget
 from datatypes import Sensor, SensorType
 from datamediator import DataMediator
-from graphupdater import GraphUpdater
+from functools import partial
+
+
+class SideBar(QtWidgets.QTreeWidget):
+    button_toggled = QtCore.Signal(SensorType, Sensor, bool)
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        for sensor_type in SensorType:
+            top_level_item = QtWidgets.QTreeWidgetItem(self)
+            top_level_item.setText(0, sensor_type.value)
+            for sensor in Sensor:
+                clickable_item = QtWidgets.QTreeWidgetItem(top_level_item)
+                button = QtWidgets.QCheckBox()
+                button.setText(sensor.value)
+                callback = partial(self.button_toggled_fn, sensor_type, sensor)
+                button.toggled.connect(callback)
+                self.setItemWidget(clickable_item, 0, button)
+
+    def button_toggled_fn(self, sensor_type, sensor, state):
+        self.button_toggled.emit(sensor_type, sensor, state)
 
 
 class PlotTabWidget(QtWidgets.QTabWidget):
     def __init__(
         self,
-        sensor: Sensor,
-        sensor_type: SensorType,
         datasource: DataMediator,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.sensor = sensor
-        self.sensor_type = sensor_type
         self.datasource = datasource
-        use_integer_y_axis = self.sensor == Sensor.DHT11
-        self._tab_name = f"{self.sensor.value} {self.sensor_type.value.capitalize()}"
-        self.linewidget = LinePlotWidget(
-            self.sensor, self.sensor_type, use_integer=use_integer_y_axis
-        )
-        self.linewidget_manager = GraphUpdater(self.linewidget, self._tab_name)
-        self.histogramwidget = HistogramWidget(
-            self.sensor, self.sensor_type, use_integer=use_integer_y_axis
-        )
-        self.histogramwidget_manager = GraphUpdater(
-            self.histogramwidget, self._tab_name
-        )
-        # self.time_of_day_widget = TimeOfDayWidget(self.sensor, self.sensor_type)
-        # self.time_of_day_widget_manager = GraphUpdater(
-        #     self.time_of_day_widget, self._tab_name
-        # )
-        self.addTab(self.linewidget, "Line")
-        self.addTab(self.histogramwidget, "Histogram")
-        # self.addTab(self.time_of_day_widget, "Time of Day")
+        self.linewidget = LinePlotWidget(self.datasource)
+        sidebar = SideBar()
+        self.intermediate_widget = self.widget_with_sidebar(self.linewidget, sidebar)
+        sidebar.button_toggled.connect(self.linewidget.toggle_line)
+        self.addTab(self.intermediate_widget, "Line")
         self.currentChanged.connect(self.update_plot)
 
     def update_plot(self):
-        dataset = self.datasource.get_data(self.sensor, self.sensor_type)
-        if dataset is not None:
-            self.linewidget_manager.plot(dataset)
-            self.histogramwidget_manager.plot(dataset)
-            # self.time_of_day_widget_manager.plot(dataset)
+        self.linewidget.plot()
+
+    @staticmethod
+    def widget_with_sidebar(plot_widget, sidebar):
+        widget = QtWidgets.QWidget(None)
+        hbox = QtWidgets.QHBoxLayout(widget)
+        hbox.addWidget(plot_widget, stretch=1)
+        hbox.addWidget(sidebar)
+        return widget

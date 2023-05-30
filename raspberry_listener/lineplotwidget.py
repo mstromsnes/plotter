@@ -1,10 +1,11 @@
 from PySide6 import QtWidgets, QtGui, QtCore
 from datatypes import DataSet, Sensor, SensorType
-from drawwidget import DrawWidget, UnpackedDataSet
-from matplotlib import rcParams, axes
+from datamediator import DataMediator
+from drawwidget import DrawWidget
+from matplotlib import rcParams
 from scipy.signal import medfilt
-
-from matplotlib.ticker import MaxNLocator
+import plotmanager
+from plotstrategies import LinePlot
 
 
 class MedFilterButton(QtWidgets.QWidget):
@@ -25,13 +26,9 @@ class MedFilterButton(QtWidgets.QWidget):
 
     def __init__(
         self,
-        sensor: Sensor,
-        sensor_type: SensorType,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.sensor = sensor
-        self.sensor_type = sensor_type
         self.spinbox = self.OddSpinBox()
         self.label = QtWidgets.QLabel("Median Filter")
         self.spinbox.setValue(1)
@@ -42,7 +39,7 @@ class MedFilterButton(QtWidgets.QWidget):
         layout.addWidget(self.label)
         self.spinbox.valueChanged.connect(self.valueChanged)
 
-    def medfilt(self, data: UnpackedDataSet) -> UnpackedDataSet:
+    def medfilt(self, data):
         x, y = data
         return x, medfilt(y, self.spinbox.value())
 
@@ -64,45 +61,23 @@ class SimplifyPlotSpinBox(QtWidgets.QDoubleSpinBox):
 class LinePlotWidget(DrawWidget):
     def __init__(
         self,
-        sensor: Sensor,
-        sensor_type: SensorType,
-        use_integer=False,
+        datasource: DataMediator,
         parent: QtWidgets.QWidget | None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(parent=parent)
-        self.sensor = sensor
-        self.sensor_type = sensor_type
-        self.line = None
-        self.medfilt_spinbox = MedFilterButton(self.sensor, self.sensor_type)
+
+        self.datasource = datasource
         self.navigation_layout.addWidget(SimplifyPlotSpinBox())
-        self.navigation_layout.addWidget(self.medfilt_spinbox)
-        self.add_postprocessing_function(self.medfilt_spinbox.medfilt)
+        self.manager = plotmanager.OneAxesPrSensorTypeManager(self, "Timeseries")
 
-        self.medfilt_spinbox.valueChanged.connect(self.plot)
-        self.ax: axes.Axes = self.figure.add_subplot(**kwargs)
-        if use_integer:
-            self.ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    @QtCore.Slot(SensorType, Sensor, bool)
+    def toggle_line(self, sensor_type: SensorType, sensor: Sensor, checked: bool):
+        if not checked:
+            self.manager.remove_plotting_strategy(sensor_type, sensor)
+        else:
+            strategy = LinePlot(self.datasource, sensor_type, sensor)
+            self.manager.add_plotting_strategy(strategy, sensor_type, sensor)
 
-    def update_graph(self, dataset: DataSet, title: str):
-        self._dataset = dataset
-        self._title = title
-
-    @DrawWidget.draw
-    def plot(self, *args, **kwargs):
-        dataset = self._dataset
-        for func in self._postprocessing_functions:
-            dataset = func(dataset)
-        time, data = dataset
-        if self.line is not None:
-            self.line.set_xdata(time)
-            self.line.set_ydata(data)
-        elif data.size > 0 or self._initial_kwargs != kwargs:
-            (self.line,) = self.ax.plot(time, data, **kwargs)
-            self._initial_kwargs = kwargs
-
-        self.ax.set_title(self._title)
-
-    def _rescale(self):
-        self.ax.relim()
-        self.ax.autoscale()
+    def plot(self):
+        self.manager.plot()

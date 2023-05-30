@@ -3,6 +3,7 @@ from datatypes import DataSet
 from pandera.typing import DataFrame
 import pandera as pa
 
+
 from datatypes import SensorData
 from fastapi import HTTPException
 from datatypes import Sensor, SensorType
@@ -13,19 +14,29 @@ from remotereader import (
 )
 
 
+class DataNotReadyException(Exception):
+    ...
+
+
 class DataMediator:
     def __init__(self):
-        self._dataframe: DataFrame[SensorData] | None = self._load_dataframe()
+        self._dataframe: DataFrame | None = self._load_dataframe()
 
     def _load_dataframe(
         self, timestamp: pd.Timestamp | None = None
-    ) -> DataFrame[SensorData] | None:
+    ) -> DataFrame | None:
         try:
             format = Format.Parquet if timestamp is None else Format.JSON
             dataframe = self._read_archive(timestamp, format)
         except (HTTPException, ArchiveNotAvailableException):
             dataframe = None
         return dataframe
+
+    @property
+    def dataframe(self):
+        if self._dataframe is None:
+            raise DataNotReadyException
+        return self._dataframe
 
     def get_data(self, sensor: Sensor, sensor_type: SensorType) -> DataSet | None:
         if self._dataframe is None:
