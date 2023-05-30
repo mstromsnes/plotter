@@ -63,7 +63,7 @@ class DrawWidget(QtWidgets.QWidget):
         self.canvas = FigureCanvas(self.figure)
         self.plot_live = True
         self.rescale_plot = rescale_plot
-        self.main_layout.addWidget(self.canvas)
+        self.main_layout.addWidget(self.canvas, stretch=1)
         self.navigation_layout = QtWidgets.QHBoxLayout()
         self.navigation_layout.addWidget(
             NavigationToolbar(self.canvas, self, coordinates=False)
