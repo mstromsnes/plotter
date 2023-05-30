@@ -63,3 +63,33 @@ class PlotManager(ABC):
     @abstractmethod
     def remove_plotting_strategy(self, *args, **kwargs):
         ...
+
+
+class OneAxesPrStrategyPlotManager(PlotManager):
+    def __init__(self, draw_widget: DrawWidget, title: str):
+        super().__init__(draw_widget, title)
+        self._axes: dict[PlotStrategy, Axes] = {}
+        self._plotting_strategies: dict[Hashable, PlotStrategy] = {}
+
+    @property
+    def axes(self):
+        return self._axes.values()
+
+    @property
+    def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
+        return {ax: [strategy] for strategy, ax in self._axes.items()}
+
+    def add_plotting_strategy(self, strategy: PlotStrategy, key: Hashable):
+        ax = self.widget.add_axes()
+        self._axes[strategy] = ax
+        self._plotting_strategies[key] = strategy
+        self.plot()
+
+    def remove_plotting_strategy(self, key: Hashable):
+        strategy = self._plotting_strategies[key]
+        ax = self._axes[strategy]
+        self.widget.remove_axes(ax)
+        del self._plotting_strategies[key]
+        del self._axes[strategy]
+        self.plot()
+
