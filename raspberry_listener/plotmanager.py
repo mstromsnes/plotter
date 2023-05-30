@@ -179,3 +179,40 @@ class OneAxesPrSensorTypeManager(PlotManager):
         while True:
             yield 211
             yield 212
+
+
+class OneAxesPlotManager(PlotManager):
+    """Draws all plots in a single axes."""
+
+    def __init__(self, widget: DrawWidget, title: str | None = None):
+        super().__init__(widget, title)
+        self._axes: Axes | None = None
+        self._plotting_strategies: dict[Hashable, PlotStrategy] = {}
+
+    @property
+    def axes(self):
+        return [self._axes] if self._axes is not None else []
+
+    @property
+    def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
+        return (
+            {self._axes: list(self._plotting_strategies.values())}
+            if self._axes is not None
+            else {}
+        )
+
+    def add_plotting_strategy(
+        self, strategy: PlotStrategy, key: Hashable, *args, **kwargs
+    ):
+        if self._axes is None:
+            self._axes = self.widget.add_axes()
+        self._plotting_strategies[key] = strategy
+        self.plot()
+
+    def remove_plotting_strategy(self, key, *args, **kwargs):
+        self._remove_artist(self._plotting_strategies[key])
+        del self._plotting_strategies[key]
+        if not self._plotting_strategies:
+            self.widget.remove_axes(self._axes)
+            self._axes = None
+        self.plot()
