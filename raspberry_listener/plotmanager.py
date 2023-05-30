@@ -37,6 +37,17 @@ class PlotManager(ABC):
             ax.relim()
             ax.autoscale()
 
+    @staticmethod
+    def _remove_artist(strategy: PlotStrategy):
+        try:
+            artist = strategy.artist
+            if isinstance(artist, Sequence):
+                [art.remove() for art in artist]
+            elif isinstance(artist, Artist):
+                artist.remove()
+        except AttributeError:
+            pass
+
     @property
     @abstractmethod
     def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
@@ -66,6 +77,8 @@ class PlotManager(ABC):
 
 
 class OneAxesPrStrategyPlotManager(PlotManager):
+    """Creates a new axes for each plot"""
+
     def __init__(self, draw_widget: DrawWidget, title: str):
         super().__init__(draw_widget, title)
         self._axes: dict[PlotStrategy, Axes] = {}
@@ -79,14 +92,17 @@ class OneAxesPrStrategyPlotManager(PlotManager):
     def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
         return {ax: [strategy] for strategy, ax in self._axes.items()}
 
-    def add_plotting_strategy(self, strategy: PlotStrategy, key: Hashable):
+    def add_plotting_strategy(
+        self, strategy: PlotStrategy, key: Hashable, *args, **kwargs
+    ):
         ax = self.widget.add_axes()
         self._axes[strategy] = ax
         self._plotting_strategies[key] = strategy
         self.plot()
 
-    def remove_plotting_strategy(self, key: Hashable):
+    def remove_plotting_strategy(self, key: Hashable, *args, **kwargs):
         strategy = self._plotting_strategies[key]
+        self._remove_artist(strategy)
         ax = self._axes[strategy]
         self.widget.remove_axes(ax)
         del self._plotting_strategies[key]
@@ -95,6 +111,8 @@ class OneAxesPrStrategyPlotManager(PlotManager):
 
 
 class OneAxesPrSensorTypeManager(PlotManager):
+    """Groups plots into axes determined by axes_key"""
+
     def __init__(self, widget: DrawWidget, title: str | None = None):
         super().__init__(widget, title)
         self._axes: dict[Hashable, Axes] = {}
@@ -113,7 +131,12 @@ class OneAxesPrSensorTypeManager(PlotManager):
         }
 
     def add_plotting_strategy(
-        self, strategy: PlotStrategy, axes_key: Hashable, strategy_key: Hashable
+        self,
+        strategy: PlotStrategy,
+        axes_key: Hashable,
+        strategy_key: Hashable,
+        *args,
+        **kwargs,
     ):
         if axes_key not in self._axes:
             try:
@@ -128,17 +151,13 @@ class OneAxesPrSensorTypeManager(PlotManager):
         self._plotting_strategies[axes_key][strategy_key] = strategy
         self.plot()
 
-    def remove_plotting_strategy(self, axes_key: Hashable, strategy_key: Hashable):
+    def remove_plotting_strategy(
+        self, axes_key: Hashable, strategy_key: Hashable, *args, **kwargs
+    ):
         if axes_key in self._axes:
             # If axes exist, delete the strategy from that axes
-            try:
-                artist = self._plotting_strategies[axes_key][strategy_key].artist
-                if isinstance(artist, Sequence):
-                    [art.remove() for art in artist]
-                elif isinstance(artist, Artist):
-                    artist.remove()
-            except AttributeError:
-                ...
+            strategy = self._plotting_strategies[axes_key][strategy_key]
+            self._remove_artist(strategy)
             del self._plotting_strategies[axes_key][strategy_key]
         if not self._plotting_strategies[axes_key]:
             # If dict of strategies for that axes is (now) empty, remove the axes completely
