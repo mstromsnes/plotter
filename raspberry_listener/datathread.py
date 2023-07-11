@@ -1,32 +1,45 @@
 from PySide6 import QtCore
-from datamediator import DataMediator
-from mainwindow import MainWindow
+from datamodels.sources.framehandler import FrameHandler
 from typing import Callable
-
 import debugpy
 
 
-class DataThread(QtCore.QObject):
+class DataThreadController(QtCore.QObject):
     finished = QtCore.Signal()
+    init_load = QtCore.Signal()
+    update_data = QtCore.Signal()
 
-    def __init__(self, data_source: DataMediator, window: MainWindow):
+    def __init__(self, data_source: FrameHandler):
         super().__init__()
-        self.threadpool = QtCore.QThreadPool()
+        self.workerThread = QtCore.QThread()
         self.data_source = data_source
-        self.window = window
+        self._already_queued = False
+        self.init_load_worker = self.Worker(self.data_source.initial_load)
+        self.init_load_worker.moveToThread(self.workerThread)
+        self.repeat_load_worker = self.Worker(self.data_source.update_data)
+        self.repeat_load_worker.moveToThread(self.workerThread)
+        self.workerThread.start()
+        self.init_load.connect(self.init_load_worker.run)
+        self.init_load_worker.finished.connect(self.finished)
+        self.init_load.emit()
+        self.update_data.connect(self.repeat_load_worker.run)
+        self.repeat_load_worker.finished.connect(self.finished)
 
-    def gather_data(self):
-        worker = self.Worker(self.data_source, lambda: self.finished.emit())
-        self.threadpool.start(worker)
+    def __del__(self):
+        self.workerThread.quit()
+        self.workerThread.wait()
 
-    class Worker(QtCore.QRunnable):
-        def __init__(self, data_source: DataMediator, callback_fn: Callable):
+    class Worker(QtCore.QObject):
+        finished = QtCore.Signal()
+
+        def __init__(self, data_source_callback: Callable):
             super().__init__()
-            self.data_source = data_source
-            self.callback_fn = callback_fn
+            self.data_source_callback = data_source_callback
 
+        @QtCore.Slot()
         def run(self):
             # Call this before code running in the datathread when debugging.
-            # debugpy.debug_this_thread()
-            self.data_source.merge_new_data_into_dataframe()
-            self.callback_fn()
+            if debugpy.is_client_connected():
+                debugpy.debug_this_thread()
+            self.data_source_callback()
+            self.finished.emit()
