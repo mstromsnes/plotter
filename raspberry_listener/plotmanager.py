@@ -1,11 +1,33 @@
-from drawwidget import DrawWidget
+from ui.drawwidget import DrawWidget
 from matplotlib.axes import Axes
-from typing import Sequence, Hashable, Mapping
+from typing import Sequence, Hashable, Mapping, Any, Callable
 from plotstrategies import PlotStrategy
 from abc import ABC, abstractmethod
-from functools import wraps
+from functools import wraps, partial
+from collections import defaultdict
 from matplotlib.axes import Axes
 from matplotlib.artist import Artist
+from datamodels.sources.framehandler import DataNotReadyException
+
+
+class LayoutManager(ABC):
+    @abstractmethod
+    def add_axes(self) -> Axes:
+        ...
+
+    @abstractmethod
+    def remove_axes(self):
+        ...
+
+
+class VerticalLayoutManager(LayoutManager):
+    def __init__(self, widget: DrawWidget, plotmanager: "PlotManager"):
+        self._widget = widget
+        self._plotmanager = plotmanager
+        self._axes: dict[Hashable, tuple[Axes, tuple[int, int, int]]] = {}
+
+    def add_axes(self, key: Hashable):
+        num_axes = len(self._plotmanager.axes)
 
 
 class PlotManager(ABC):
@@ -15,7 +37,7 @@ class PlotManager(ABC):
 
         @wraps(func)
         def wrapper(self: "PlotManager", *args, **kwargs):
-            if self.widget.plot_live and self.widget.canvas.isVisible():
+            if self.widget.plot_live and self.widget.isVisible():
                 func(self, *args, **kwargs)
                 if self.widget.rescale_plot:
                     self._rescale()
@@ -28,9 +50,10 @@ class PlotManager(ABC):
         self.set_title(title)
 
     def set_title(self, title: str | None):
-        self.title = title
-        if self.title is not None:
-            self.widget.figure.suptitle(self.title)
+        ...
+        # self.title = title
+        # if self.title is not None:
+        #     self.widget.figure.suptitle(self.title)
 
     def _rescale(self):
         for ax in self.axes:
@@ -63,13 +86,13 @@ class PlotManager(ABC):
         ...
 
     @draw
-    def plot(self):
+    def plot(self, kwarg_supplier: Callable[[PlotStrategy], dict[str, Any]]):
         for ax in self.axes:
             for plot in self.plotting_strategies[ax]:
-                plot(ax)
-
-    def update_plot(self):
-        self.plot()
+                try:
+                    plot(ax, **kwarg_supplier(plot))
+                except DataNotReadyException:
+                    pass
 
     @abstractmethod
     def remove_plotting_strategy(self, *args, **kwargs):
@@ -83,6 +106,7 @@ class OneAxesPrStrategyPlotManager(PlotManager):
         super().__init__(draw_widget, title)
         self._axes: dict[PlotStrategy, Axes] = {}
         self._plotting_strategies: dict[Hashable, PlotStrategy] = {}
+        self._plotting_kwargs: dict[PlotStrategy, dict[str, Any]] = {}
 
     @property
     def axes(self):
@@ -98,6 +122,7 @@ class OneAxesPrStrategyPlotManager(PlotManager):
         ax = self.widget.add_axes()
         self._axes[strategy] = ax
         self._plotting_strategies[key] = strategy
+        self._plotting_kwargs[strategy] = kwargs
         self.plot()
 
     def remove_plotting_strategy(self, key: Hashable, *args, **kwargs):
@@ -109,6 +134,9 @@ class OneAxesPrStrategyPlotManager(PlotManager):
         del self._axes[strategy]
         self.plot()
 
+    def plot(self):
+        return super().plot(lambda plot: self._plotting_kwargs[plot])
+
 
 class OneAxesPrSensorTypeManager(PlotManager):
     """Groups plots into axes determined by axes_key"""
@@ -117,7 +145,10 @@ class OneAxesPrSensorTypeManager(PlotManager):
         super().__init__(widget, title)
         self._axes: dict[Hashable, Axes] = {}
         self._plotting_strategies: dict[Hashable, dict[Hashable, PlotStrategy]] = {}
-        self.subplots = self._subplot_generator()
+        self._keyed_plotting_kwargs: dict[
+            Hashable, dict[Hashable, dict[str, Any]]
+        ] = defaultdict(lambda: defaultdict(dict))
+        self._plotting_kwargs: dict[PlotStrategy, dict[str, Any]] = {}
 
     @property
     def axes(self):
@@ -129,6 +160,9 @@ class OneAxesPrSensorTypeManager(PlotManager):
             ax: list(self._plotting_strategies[key].values())
             for key, ax in self._axes.items()
         }
+
+    def plot(self):
+        return super().plot(lambda plot: self._plotting_kwargs[plot])
 
     def add_plotting_strategy(
         self,
@@ -142,14 +176,24 @@ class OneAxesPrSensorTypeManager(PlotManager):
             try:
                 self._add_axes(
                     axes_key,
-                    next(self.subplots),
-                    subplot=True,
-                    title=axes_key.value.capitalize(),
                 )
             except GeneratorExit:
                 return
         self._plotting_strategies[axes_key][strategy_key] = strategy
+        self.update_plotting_kwargs(axes_key, strategy_key, **kwargs)
         self.plot()
+
+    def set_plotting_kwargs(self, axes_key: Hashable, strategy_key: Hashable, **kwargs):
+        self._keyed_plotting_kwargs[axes_key][strategy_key] = kwargs
+        strategy = self._plotting_strategies[axes_key][strategy_key]
+        self._plotting_kwargs[strategy] = kwargs
+
+    def update_plotting_kwargs(
+        self, axes_key: Hashable, strategy_key: Hashable, **kwargs
+    ):
+        self._keyed_plotting_kwargs[axes_key][strategy_key].update(**kwargs)
+        strategy = self._plotting_strategies[axes_key][strategy_key]
+        self._plotting_kwargs[strategy] = kwargs
 
     def remove_plotting_strategy(
         self, axes_key: Hashable, strategy_key: Hashable, *args, **kwargs
@@ -159,6 +203,7 @@ class OneAxesPrSensorTypeManager(PlotManager):
             strategy = self._plotting_strategies[axes_key][strategy_key]
             self._remove_artist(strategy)
             del self._plotting_strategies[axes_key][strategy_key]
+            del self._plotting_kwargs[strategy]
         if not self._plotting_strategies[axes_key]:
             # If dict of strategies for that axes is (now) empty, remove the axes completely
             ax = self._axes[axes_key]
@@ -168,17 +213,12 @@ class OneAxesPrSensorTypeManager(PlotManager):
 
         self.plot()
 
-    def _add_axes(self, key: Hashable, *args, subplot=True, **kwargs):
+    def _add_axes(self, key: Hashable, *args, **kwargs):
         if key in self.axes:
             raise KeyError(f"Axes already exist for this key {key}")
-        ax = self.widget.add_axes(*args, subplot=subplot, **kwargs)
+        ax = self.widget.add_axes(*args, **kwargs)
         self._axes[key] = ax
         self._plotting_strategies[key] = dict()
-
-    def _subplot_generator(self):
-        while True:
-            yield 211
-            yield 212
 
 
 class OneAxesPlotManager(PlotManager):
