@@ -55,7 +55,6 @@ class TimeOfDayWidget(DrawWidget):
             self.sufficient_data = False
         self._title = title
 
-    @DrawWidget.draw
     def plot(self, *args, **kwargs):
         [clock.clear() for clock in self.clocks]
         # There is no fallback for missing data, so if we don't have data for all 24 hours, don't draw anything
@@ -124,10 +123,9 @@ class TimeOfDayWidget(DrawWidget):
         The multiindex allows requesting all data that occured within a specific hour of every day.
         """
         time, data = dataset
-        df = pd.DataFrame({self.datatype.dataframe_names[0]: data}, index=time)
-        df = df.groupby(df.index.hour, group_keys=True)[
-            self.datatype.dataframe_names[0]
-        ].apply(
+        df = pd.DataFrame({"Data": data}, index=time)
+        df = df.groupby(df.index.hour, group_keys=True)["Data"].apply(
             lambda x: x
         )  # Dataframe with multiindex on the hour
+        print(df)
         return df
