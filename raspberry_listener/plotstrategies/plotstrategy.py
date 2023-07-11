@@ -4,7 +4,7 @@ from matplotlib.artist import Artist
 
 
 class PlotStrategy(Protocol):
-    def __call__(self, ax: Axes):
+    def __call__(self, ax: Axes, **kwargs):
         """A method that plots something from self on axes ax."""
         ...
 
