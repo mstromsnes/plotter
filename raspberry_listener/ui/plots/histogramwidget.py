@@ -28,7 +28,6 @@ class HistogramWidget(DrawWidget):
         self._dataset = dataset
         self._title = title
 
-    @DrawWidget.draw
     def plot(self, *args, **kwargs):
         dataset = self._dataset
         for func in self._postprocessing_functions:
