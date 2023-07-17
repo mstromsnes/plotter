@@ -1,1 +1,1 @@
-from .plottabwidget import PlotTabWidget
+from .plottabwidget import DataTypeTabWidget
