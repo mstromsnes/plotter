@@ -1,43 +1,56 @@
-from sources import FrameHandler
 from plotstrategies.line import LinePlot
+from plotstrategies.plotstrategy import PlotStrategy
 from PySide6 import QtWidgets
-from ui.plots import LinePlotWidget
+from ui.plots import LinePlotWidget, PlotWidget
+from datamodels import DataTypeModel
+from .sidebar import SideBar
 
-from .sidebar import SideBar, TreeItem, TreeModel
 
+class DataTypeTabWidget(QtWidgets.QTabWidget):
+    WIDGET_STRATEGY: dict[type[PlotStrategy], type[PlotWidget]] = {
+        LinePlot: LinePlotWidget,
+    }
 
-class PlotTabWidget(QtWidgets.QTabWidget):
     def __init__(
         self,
-        datasource: FrameHandler,
-        data_sets: ModelDataSetReturnType,
-        tab_name: str,
+        model: DataTypeModel,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.datasource = datasource
-        self.data_sets = data_sets
-        self.linewidget = LinePlotWidget(self.datasource)
-        line_sets = data_sets[LinePlot]
-        children = [TreeItem([], keys[-1], keys) for keys in line_sets]
-        self.tree_children = children
-        self.tree = TreeItem(children, f"\t{tab_name}", None)
-        self.model = TreeModel(self.tree)
-        self.sidebar = SideBar(self.model)
-        self.intermediate_widget = self.widget_with_sidebar(
-            self.linewidget, self.sidebar
-        )
-        self.sidebar.button_toggled.connect(self.linewidget.toggle_line)
-        self.addTab(self.intermediate_widget, "Line")
+        self.model = model
+        self.widgets: list[PlotTabWidget] = []
+        for supported_plot in model.supported_plots():
+            try:
+                widget_type = self.WIDGET_STRATEGY[supported_plot]
+                widget = PlotTabWidget(model, widget_type)
+                self.widgets.append(widget)
+                self.addTab(widget, supported_plot.name())
+            except KeyError:
+                pass
         self.currentChanged.connect(self.update_plot)
 
     def update_plot(self):
-        self.linewidget.plot()
+        for widget in self.widgets:
+            if widget.isVisible():
+                widget.update_plot()
 
-    @staticmethod
-    def widget_with_sidebar(plot_widget, sidebar):
-        widget = QtWidgets.QWidget(None)
-        hbox = QtWidgets.QHBoxLayout(widget)
-        hbox.addWidget(plot_widget, stretch=1)
-        hbox.addWidget(sidebar)
-        return widget
+
+class PlotTabWidget(QtWidgets.QWidget):
+    def __init__(
+        self,
+        model: DataTypeModel,
+        widget_type: type[PlotWidget],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.model = model
+        self.plot_widget = widget_type(self.model)
+        self.sidebar = SideBar(model)
+        self.sidebar.button_toggled.connect(self.plot_widget.toggle_data)
+        hbox = QtWidgets.QHBoxLayout(self)
+        hbox.addWidget(self.plot_widget, stretch=1)
+        hbox.addWidget(self.sidebar)
+        self.setLayout(hbox)
+
+    def update_plot(self):
+        self.plot_widget.plot()
