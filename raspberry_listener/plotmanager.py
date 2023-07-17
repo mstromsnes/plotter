@@ -3,7 +3,7 @@ from matplotlib.axes import Axes
 from typing import Sequence, Hashable, Mapping, Any, Callable
 from plotstrategies import PlotStrategy
 from abc import ABC, abstractmethod
-from functools import wraps, partial
+from functools import wraps
 from collections import defaultdict
 from matplotlib.axes import Axes
 from matplotlib.artist import Artist
@@ -59,17 +59,6 @@ class PlotManager(ABC):
         for ax in self.axes:
             ax.relim()
             ax.autoscale()
-
-    @staticmethod
-    def _remove_artist(strategy: PlotStrategy):
-        try:
-            artist = strategy.artist
-            if isinstance(artist, Sequence):
-                [art.remove() for art in artist]
-            elif isinstance(artist, Artist):
-                artist.remove()
-        except AttributeError:
-            pass
 
     @property
     @abstractmethod
@@ -127,7 +116,7 @@ class OneAxesPrStrategyPlotManager(PlotManager):
 
     def remove_plotting_strategy(self, key: Hashable, *args, **kwargs):
         strategy = self._plotting_strategies[key]
-        self._remove_artist(strategy)
+        strategy.remove_artist()
         ax = self._axes[strategy]
         self.widget.remove_axes(ax)
         del self._plotting_strategies[key]
@@ -201,7 +190,7 @@ class OneAxesPrSensorTypeManager(PlotManager):
         if axes_key in self._axes:
             # If axes exist, delete the strategy from that axes
             strategy = self._plotting_strategies[axes_key][strategy_key]
-            self._remove_artist(strategy)
+            strategy.remove_artist()
             del self._plotting_strategies[axes_key][strategy_key]
             del self._plotting_kwargs[strategy]
         if not self._plotting_strategies[axes_key]:
@@ -227,7 +216,8 @@ class OneAxesPlotManager(PlotManager):
     def __init__(self, widget: DrawWidget, title: str | None = None):
         super().__init__(widget, title)
         self._axes: Axes | None = None
-        self._plotting_strategies: dict[Hashable, PlotStrategy] = {}
+        self._plotting_strategies: set[PlotStrategy] = set()
+        self._plotting_kwargs: dict[PlotStrategy, dict[str, Any]] = defaultdict(dict)
 
     @property
     def axes(self):
@@ -236,23 +226,30 @@ class OneAxesPlotManager(PlotManager):
     @property
     def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
         return (
-            {self._axes: list(self._plotting_strategies.values())}
+            {self._axes: list(self._plotting_strategies)}
             if self._axes is not None
             else {}
         )
 
-    def add_plotting_strategy(
-        self, strategy: PlotStrategy, key: Hashable, *args, **kwargs
-    ):
+    def plot(self):
+        return super().plot(lambda plot: self._plotting_kwargs[plot])
+
+    def add_plotting_strategy(self, strategy: PlotStrategy, *args, **kwargs):
         if self._axes is None:
             self._axes = self.widget.add_axes()
-        self._plotting_strategies[key] = strategy
+        self._plotting_strategies.add(strategy)
         self.plot()
 
-    def remove_plotting_strategy(self, key, *args, **kwargs):
-        self._remove_artist(self._plotting_strategies[key])
-        del self._plotting_strategies[key]
+    def remove_plotting_strategy(self, strategy: PlotStrategy, *args, **kwargs):
+        strategy.remove_artist()
+        self._plotting_strategies.remove(strategy)
         if not self._plotting_strategies:
             self.widget.remove_axes(self._axes)
             self._axes = None
         self.plot()
+
+    def update_plotting_kwargs(self, strategy: PlotStrategy, **kwargs):
+        self._plotting_kwargs[strategy] = kwargs
+
+    def set_plotting_kwargs(self, strategy: PlotStrategy, **kwargs):
+        self._plotting_kwargs[strategy] = kwargs
