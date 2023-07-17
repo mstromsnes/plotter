@@ -1,4 +1,3 @@
-import pandas as pd
 from matplotlib.axes import Axes
 from sources import DataNotReadyException, FrameHandler
 from matplotlib.lines import Line2D
@@ -8,42 +7,41 @@ from .plotstrategy import PlotStrategy
 class LinePlot(PlotStrategy):
     def __init__(
         self,
-        datasource: FrameHandler,
-        keys: tuple,
+        dataset_fn,
+        model,
         label: str | None = None,
     ):
-        self.datasource = datasource
-        self.keys = keys
+        self.dataset_fn = dataset_fn
         self.label = label
 
-    def __str__(self):
+    @staticmethod
+    def name():
         return "Line"
 
     def __call__(self, ax: Axes, **kwargs):
         try:
-            series = self.get_timeindexed_series()
+            x, y = self.dataset_fn()
         except DataNotReadyException:
             return
         try:
-            self.artist.set_xdata(series.index.to_numpy())
-            self.artist.set_ydata(series.to_numpy())
+            self.artist.set_xdata(x)
+            self.artist.set_ydata(y)
             self.artist.recache()
         except AttributeError:
             self._artists = ax.plot(
-                series.index.to_numpy(),
-                series.to_numpy(),
+                x,
+                y,
                 label=self.label,
                 **kwargs,
             )
 
-    def get_timeindexed_series(self) -> pd.Series:
-        df = self.datasource.dataframe
-        df = df.loc[*self.keys]
-        assert isinstance(df, pd.DataFrame)
-        series = df.get("reading")
-        assert isinstance(series, pd.Series)
-        return series
-
     @property
     def artist(self) -> Line2D:
         return self._artists[0]
+
+    def remove_artist(self):
+        try:
+            self.artist.remove()
+            del self._artists
+        except AttributeError:
+            pass

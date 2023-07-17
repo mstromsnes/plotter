@@ -1,31 +1,31 @@
-import plotmanager
-from sources import FrameHandler
+from plotmanager import OneAxesPlotManager
 from plotstrategies.line import LinePlot
 from PySide6 import QtCore, QtWidgets
-from ui.drawwidget import DrawWidget
+from .plotwidget import PlotWidget
 from .simplifyplotbutton import SimplifyPlotSpinBox
+from datamodels import DataTypeModel
 
 
-class LinePlotWidget(DrawWidget):
+class LinePlotWidget(PlotWidget):
     def __init__(
         self,
-        datasource: FrameHandler,
+        model: DataTypeModel,
         parent: QtWidgets.QWidget | None = None,
         **kwargs,
     ):
         super().__init__(parent=parent)
 
-        self.datasource = datasource
+        self.model = model
         self.navigation_layout.addWidget(SimplifyPlotSpinBox())
-        self.manager = plotmanager.OneAxesPrSensorTypeManager(self, "Timeseries")
+        self.manager = OneAxesPlotManager(self, "Timeseries")
 
-    @QtCore.Slot(tuple, bool)
-    def toggle_line(self, dataset_key: tuple, label: str | None, checked: bool):
+    @QtCore.Slot(str, bool)
+    def toggle_data(self, label: str, checked: bool):
+        strategy = self.model.get_plot(label, LinePlot)
         if not checked:
-            self.manager.remove_plotting_strategy(*dataset_key)
+            self.manager.remove_plotting_strategy(strategy)
         else:
-            strategy = LinePlot(self.datasource, dataset_key, label)
-            self.manager.add_plotting_strategy(strategy, *dataset_key)
+            self.manager.add_plotting_strategy(strategy)
 
     def plot(self):
         self.manager.plot()
