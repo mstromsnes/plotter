@@ -7,7 +7,7 @@ from functools import wraps, partial
 from collections import defaultdict
 from matplotlib.axes import Axes
 from matplotlib.artist import Artist
-from datamodels.sources.framehandler import DataNotReadyException
+from sources import DataNotReadyException
 
 
 class LayoutManager(ABC):

@@ -1,7 +1,7 @@
 import logging
 
 from ui.dataplotterwindow import DataPlotterWindow
-from datamodels.sources import FrameHandler, SensorDataFrameHandler
+from sources import SensorDataFrameHandler
 from datathread import DataThreadController
 from PySide6 import QtCore, QtWidgets
 

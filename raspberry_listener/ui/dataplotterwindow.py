@@ -1,6 +1,5 @@
 from PySide6 import QtWidgets, QtCore, QtGui
-from datamodels.sources.framehandler import FrameHandler
-from .plottab import PlotTabWidget
+from sources import FrameHandler
 from datathread import DataThreadController
 from typing import Callable
 

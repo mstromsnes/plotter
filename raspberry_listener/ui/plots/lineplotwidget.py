@@ -1,5 +1,5 @@
 import plotmanager
-from datamodels.sources.framehandler import FrameHandler
+from sources import FrameHandler
 from plotstrategies.line import LinePlot
 from PySide6 import QtCore, QtWidgets
 from ui.drawwidget import DrawWidget

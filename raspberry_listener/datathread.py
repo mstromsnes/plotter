@@ -1,5 +1,5 @@
 from PySide6 import QtCore
-from datamodels.sources.framehandler import FrameHandler
+from sources import FrameHandler
 from typing import Callable
 import debugpy
 
