@@ -1,4 +1,4 @@
-from datamodels.sources.framehandler import FrameHandler, ModelDataSetReturnType
+from sources import FrameHandler
 from plotstrategies.line import LinePlot
 from PySide6 import QtWidgets
 from ui.plots import LinePlotWidget

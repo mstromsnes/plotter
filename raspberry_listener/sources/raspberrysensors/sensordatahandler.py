@@ -2,15 +2,15 @@ import datetime
 
 import pandas as pd
 import pandera as pa
-from datamodels.sources import (
+from sources import (
     DataNotReadyException,
-    DataSetModel,
     FrameHandler,
-    ModelDataSetReturnType,
 )
-from .datatypes import SensorData
+from .datatypes import SensorData, SensorType, Sensor
 from pandera.typing import DataFrame
-from plotstrategies.line import LinePlot
+
+from numpy import datetime64, floating
+from numpy.typing import NDArray
 
 from .remotereader import (
     ArchiveNotAvailableException,
@@ -20,30 +20,21 @@ from .remotereader import (
 )
 
 
-class SensorDataModel(DataSetModel):
-    def groups(self) -> list[str]:
-        return ["Temperature", "Humidity"]
-
-    def datasets(self, name: str) -> ModelDataSetReturnType:
-        return {LinePlot: self._SETS[name]}
-
-    _SETS = {
-        "Temperature": [
-            ("temperature", "DHT11"),
-            ("temperature", "DS18B20"),
-            ("temperature", "PI_CPU"),
-        ],
-        "Humidity": [
-            ("humidity", "DHT11"),
-        ],
-    }
-
-
 class SensorDataFrameHandler(FrameHandler):
-    _MODEL = SensorDataModel()
-
     def __init__(self):
         self._dataframe: DataFrame | None = None
+
+    def get_data(
+        self, keys: tuple[SensorType, Sensor]
+    ) -> tuple[NDArray[datetime64], NDArray[floating]]:
+        if self._dataframe is None:
+            raise DataNotReadyException
+        data = self._dataframe.loc[
+            (*map(lambda enum: enum.value, keys), slice(None)), slice(None)
+        ]
+        time_data = data.index.get_level_values(2).to_numpy()
+        temperature_data = data["reading"].to_numpy()
+        return time_data, temperature_data
 
     def _load_dataframe(
         self, timestamp: pd.Timestamp | None = None
@@ -82,10 +73,6 @@ class SensorDataFrameHandler(FrameHandler):
         latest_available_timestamp = self._dataframe.sort_index().index[-1][-1]
         new_df = self._load_dataframe(latest_available_timestamp)
         self._dataframe = pd.concat((self._dataframe, new_df)).sort_index()
-
-    @classmethod
-    def model(cls):
-        return cls._MODEL
 
     @pa.check_types
     def _read_archive(

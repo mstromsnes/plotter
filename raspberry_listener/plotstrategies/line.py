@@ -1,9 +1,6 @@
 import pandas as pd
 from matplotlib.axes import Axes
-from datamodels.sources.framehandler import (
-    FrameHandler,
-    DataNotReadyException,
-)
+from sources import DataNotReadyException, FrameHandler
 from matplotlib.lines import Line2D
 from .plotstrategy import PlotStrategy
 
