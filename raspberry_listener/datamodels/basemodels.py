@@ -1,15 +1,14 @@
-from plotstrategies import PlotStrategy
+from plotstrategies import PlotStrategy, LinePlot
 from collections import defaultdict
 from datamodels import DataSet_Fn, DataTypeModel
-from plotstrategies import LinePlot
 from numpy.typing import NDArray
 from numpy import datetime64, floating
 
-HumidityData = tuple[NDArray[datetime64], NDArray[floating]]
+OneDimensionalTimeSeries = tuple[NDArray[datetime64], NDArray[floating]]
 
 
-class HumidityModel(DataTypeModel):
-    SUPPORTED_PLOTS = [LinePlot]
+class OneDimensionalTimeSeriesModel(DataTypeModel):
+    SUPPORTED_PLOTS = {LinePlot}
 
     def __init__(self):
         super().__init__()
@@ -17,10 +16,6 @@ class HumidityModel(DataTypeModel):
         self._plottype_to_name: dict[type[PlotStrategy], list[str]] = defaultdict(list)
         self._name_to_plot: dict[str, list[PlotStrategy]] = defaultdict(list)
         self._name_to_source_name: dict[str, str] = defaultdict(str)
-        self._supported_plots: set[type[PlotStrategy]] = {LinePlot}
-
-    def name(self):
-        return "Humidity"
 
     def register_data(self, name: str, dataset_fn: DataSet_Fn, source_name: str):
         if name in self._datalines.keys():
@@ -33,7 +28,7 @@ class HumidityModel(DataTypeModel):
     def get_source_name(self, name) -> str:
         return self._name_to_source_name[name]
 
-    def get_data(self, name: str) -> HumidityData:
+    def get_data(self, name: str) -> OneDimensionalTimeSeries:
         return self._datalines[name]()
 
     def get_plots(self, name: str) -> list[PlotStrategy]:
@@ -50,10 +45,20 @@ class HumidityModel(DataTypeModel):
         return set(self._datalines.keys())
 
     def supported_plots(self) -> set[type[PlotStrategy]]:
-        return self._supported_plots
+        return self.SUPPORTED_PLOTS
 
     def _make_plots(self, name: str, dataset_fn: DataSet_Fn):
         for plot_type in self.SUPPORTED_PLOTS:
             plot = plot_type(dataset_fn, model=self, label=name)
             self._plottype_to_name[plot_type].append(name)
             self._name_to_plot[name].append(plot)
+
+
+class TemperatureModel(OneDimensionalTimeSeriesModel):
+    def name(self):
+        return "Temperature"
+
+
+class HumidityModel(OneDimensionalTimeSeriesModel):
+    def name(self):
+        return "Humidity"
