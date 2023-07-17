@@ -1,62 +1,59 @@
 from PySide6 import QtWidgets, QtGui, QtCore
 from functools import partial
 from dataclasses import dataclass
+from datamodels import DataTypeModel
+from typing import Self
+from collections import defaultdict
 
 
 @dataclass
 class TreeItem:
-    children: list["TreeItem"]
-    text: str | None
-    callback_args: tuple[str, ...] | None
-
-
-class SidebarDelegate(QtWidgets.QStyledItemDelegate):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionViewItem,
-        index: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
-    ) -> None:
-        self.initStyleOption(option, index)
-        if index.data(QtCore.Qt.ItemDataRole.UserRole) is not None:
-            option.text = ""
-        return super().paint(painter, option, index)
+    children: list[Self]
+    text: str
 
 
 class SideBar(QtWidgets.QTreeView):
-    button_toggled = QtCore.Signal(tuple, str, bool)
+    button_toggled = QtCore.Signal(str, bool)
 
-    def __init__(self, model: QtGui.QStandardItemModel, parent=None):
+    def __init__(
+        self, datatype_model: DataTypeModel, parent: QtWidgets.QWidget | None = None
+    ):
         super().__init__(parent=parent)
-        self.setModel(model)
-        self.setItemDelegate(SidebarDelegate())
+        self.datatype_model = datatype_model
+        self.tree_root = self.make_tree()
+        treeViewModel = TreeModel(self.tree_root)
+        self.setModel(treeViewModel)
         self._button_widgets = []
-        for row in range(model.rowCount()):
-            self.add_buttons(row)
+        self.add_buttons(treeViewModel.invisibleRootItem())
 
-    def button_toggled_fn(self, dataset_key: tuple, label: str | None, state: bool):
-        self.button_toggled.emit(dataset_key, label, state)
+    def make_tree(self):
+        data_set_names = self.datatype_model.get_dataset_names()
+        sources = defaultdict(list)
+        for name in data_set_names:
+            sources[self.datatype_model.get_source_name(name)].append(name)
+        source_nodes = []
+        for source_name, datasets in sources.items():
+            leaf_nodes = [TreeItem([], dataset_name) for dataset_name in datasets]
+            source_node = TreeItem(leaf_nodes, source_name)
+            source_nodes.append(source_node)
+        tree_root = TreeItem(source_nodes, "")
+        return tree_root
 
-    def add_buttons(self, row):
-        index = self.model().index(row, 0)
-        if (dataset_key := index.data(QtGui.Qt.ItemDataRole.UserRole)) is not None:
+    def button_toggled_fn(self, label: str, state: bool):
+        self.button_toggled.emit(label, state)
+
+    def add_buttons(self, item: QtGui.QStandardItem):
+        if item.hasChildren():
+            for row in range(item.rowCount()):
+                self.add_buttons(item.child(row, 0))
+        else:
+            label = item.data(QtGui.Qt.ItemDataRole.DisplayRole)
             button = QtWidgets.QCheckBox()
             self._button_widgets.append(button)
-            label = index.data(QtGui.Qt.ItemDataRole.DisplayRole)
-            if type(label) is str:
-                label = label.strip()
-            else:
-                label = None
-            callback = partial(self.button_toggled_fn, dataset_key, label)
+            callback = partial(self.button_toggled_fn, label)
             button.toggled.connect(callback)
-            self.setIndexWidget(index, button)
-        else:
-            model = index.model()
-            for row in range(model.rowCount()):
-                self.add_buttons(row)
+            item.setData(f"    {label.upper()}", QtGui.Qt.ItemDataRole.DisplayRole)
+            self.setIndexWidget(item.index(), button)
 
     @QtCore.Slot()
     def rowsInserted(
@@ -85,9 +82,8 @@ class TreeModel(QtGui.QStandardItemModel):
         return tree_item
 
     def fill_item(self, item: TreeItem) -> QtGui.QStandardItem:
-        text = f"    {item.text}" if item.text is not None else "N/A"
+        text = f"{item.text}" if item.text is not None else "N/A"
         print(text)
         tree_item = QtGui.QStandardItem()
         tree_item.setText(text)
-        tree_item.setData(item.callback_args, QtGui.Qt.ItemDataRole.UserRole)
         return tree_item
