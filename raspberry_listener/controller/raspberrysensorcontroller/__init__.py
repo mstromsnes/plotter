@@ -1,0 +1,1 @@
+from .controller import register_raspberry_sensor_data
