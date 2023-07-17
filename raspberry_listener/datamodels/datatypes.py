@@ -47,3 +47,18 @@ class DataTypeModel(ABC):
     def supported_plots(self) -> set[type[PlotStrategy]]:
         ...
 
+
+class DataTypeManager:
+    def __init__(self):
+        self._datatypemodels: dict[type[DataTypeModel], DataTypeModel] = {}
+
+    def register_datatype(self, datatype: DataTypeModel):
+        if type(datatype) in self._datatypemodels.keys():
+            raise KeyError(f"Datatype of type {type(datatype)} already registered.")
+        self._datatypemodels[type(datatype)] = datatype
+
+    def get_types(self) -> set[type[DataTypeModel]]:
+        return set(self._datatypemodels.keys())
+
+    def get_model(self, type: type[DataTypeModel]) -> DataTypeModel:
+        return self._datatypemodels[type]

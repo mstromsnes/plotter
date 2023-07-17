@@ -1,10 +1,12 @@
 from PySide6 import QtWidgets, QtCore, QtGui
-from sources import FrameHandler
+from datamodels import DataTypeManager
+from .plottab import DataTypeTabWidget
 from datathread import DataThreadController
 from typing import Callable
 
 
 class DataSetList(QtWidgets.QDialog):
+    # Dialog widget for choosing a dataset to load
     load_dataset = QtCore.Signal(str)
 
     def __init__(self, datasets: list[str], parent=None):
@@ -25,8 +27,10 @@ class DataSetList(QtWidgets.QDialog):
         self.listwidget.doubleClicked.connect(self.choose_dataset_and_close)
 
     def choose_dataset_and_close(self):
-        chosen_item = self.listwidget.currentItem().text()
-        self.load_dataset.emit(chosen_item)
+        # After choosing a dataset, close the widget
+        chosen_item = self.listwidget.currentItem()
+        if chosen_item is not None:
+            self.load_dataset.emit(chosen_item.text())
         self.close()
 
 
@@ -34,26 +38,30 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
     def __init__(
         self,
         available_datasets: list[str],
-        dataset_loader: Callable[[str], tuple[FrameHandler, DataThreadController]],
+        dataset_loader: Callable[[str], DataThreadController],
+        datatype_manager: DataTypeManager,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.tab_widget = QtWidgets.QTabWidget()
         self.available_datasets = available_datasets
         self.dataset_loader = dataset_loader
-        self.tab_widgets: dict[str, PlotTabWidget] = {}
+        self.dataset_manager = datatype_manager
+        self.tab_widgets: dict[str, DataTypeTabWidget] = {}
         self.set_menubar()
         self.tab_widget.currentChanged.connect(self.update_visible_plot)
         self.setCentralWidget(self.tab_widget)
-        self._loaded_datasets = {}
+        self._loaded_datasets: set[str] = set()
         self._data_loading_threads = {}
 
-    def create_plots(self, handler: FrameHandler):
-        model = handler.model()
-        for tab_name in model.groups():
-            tab = PlotTabWidget(handler, model.datasets(tab_name), tab_name)
-            self.tab_widgets[tab_name] = tab
-            self.tab_widget.addTab(tab, tab_name)
+    def create_datatype_tabs(self, datatype_manager: DataTypeManager):
+        types = datatype_manager.get_types()
+        for type in types:
+            data_model = datatype_manager.get_model(type)
+            if data_model.has_data():
+                tab = DataTypeTabWidget(data_model)
+                self.tab_widgets[data_model.name()] = tab
+                self.tab_widget.addTab(tab, data_model.name())
 
     def update_plots(self):
         for widget in self.tab_widgets.values():
@@ -77,13 +85,13 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
 
     def pick_dataset_to_load(self):
         def load_dataset(name: str):
-            if name not in self._loaded_datasets.keys():
-                handler, thread = self.dataset_loader(name)
-                self._loaded_datasets[name] = handler
+            if name not in self._loaded_datasets:
+                thread = self.dataset_loader(name)
+                self._loaded_datasets.add(name)
                 self._data_loading_threads[name] = thread
                 if name in self.available_datasets:
                     self.available_datasets.remove(name)
-                self.create_plots(handler)
+                self.create_datatype_tabs(self.dataset_manager)
 
         self.dataset_picker = DataSetList(list(self.available_datasets))
         self.dataset_picker.load_dataset.connect(load_dataset)
