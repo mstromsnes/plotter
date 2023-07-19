@@ -1,6 +1,5 @@
 from typing import Protocol, Any
 from abc import ABC, abstractmethod
-from plotstrategies import PlotStrategy
 
 
 class DataSet_Fn(Protocol):
@@ -20,7 +19,7 @@ class DataTypeModel(ABC):
         ...
 
     @abstractmethod
-    def register_data(self, name: str, dataset_fn: DataSet_Fn):
+    def register_data(self, name: str, dataset_fn: DataSet_Fn, source_name: str):
         ...
 
     @abstractmethod
@@ -28,23 +27,11 @@ class DataTypeModel(ABC):
         ...
 
     @abstractmethod
-    def get_data(self, name: str) -> DataSet_Fn:
-        ...
-
-    @abstractmethod
-    def get_plots(self, name: str) -> list[PlotStrategy]:
+    def get_data(self, name: str) -> Any:
         ...
 
     @abstractmethod
     def get_dataset_names(self) -> set[str]:
-        ...
-
-    @abstractmethod
-    def get_plot(self, name: str, plot_type: type[PlotStrategy]) -> PlotStrategy:
-        ...
-
-    @abstractmethod
-    def supported_plots(self) -> set[type[PlotStrategy]]:
         ...
 
 

@@ -1,11 +1,11 @@
 import logging
 
-from ui.dataplotterwindow import DataPlotterWindow
-from sources import SensorDataFrameHandler
 from controller import register_raspberry_sensor_data
+from datamodels import DataTypeManager, HumidityModel, TemperatureModel
 from datathread import DataThreadController
 from PySide6 import QtCore, QtWidgets
-from datamodels import TemperatureModel, HumidityModel, DataTypeManager
+from sources import SensorDataFrameHandler
+from ui.dataplotterwindow import DataPlotterWindow
 
 
 def main():
