@@ -1,14 +1,16 @@
-from plotstrategies.line import LinePlot
-from plotstrategies.plotstrategy import PlotStrategy
-from PySide6 import QtWidgets
-from ui.plots import LinePlotWidget, PlotWidget
+from controller import supported_plots
 from datamodels import DataTypeModel
+from plotstrategies import HistogramPlot, LinePlot, PlotStrategy
+from PySide6 import QtWidgets
+from ui.plots import HistogramWidget, LinePlotWidget, PlotWidget
+
 from .sidebar import SideBar
 
 
 class DataTypeTabWidget(QtWidgets.QTabWidget):
     WIDGET_STRATEGY: dict[type[PlotStrategy], type[PlotWidget]] = {
         LinePlot: LinePlotWidget,
+        HistogramPlot: HistogramWidget,
     }
 
     def __init__(
@@ -19,7 +21,7 @@ class DataTypeTabWidget(QtWidgets.QTabWidget):
         super().__init__(parent)
         self.model = model
         self.widgets: list[PlotTabWidget] = []
-        for supported_plot in model.supported_plots():
+        for supported_plot in supported_plots(model):
             try:
                 widget_type = self.WIDGET_STRATEGY[supported_plot]
                 widget = PlotTabWidget(model, widget_type)

@@ -1,17 +1,17 @@
 from matplotlib.axes import Axes
-from sources import DataNotReadyException, FrameHandler
+from sources import DataNotReadyException
 from matplotlib.lines import Line2D
 from .plotstrategy import PlotStrategy
+from datamodels import DataTypeModel
 
 
 class LinePlot(PlotStrategy):
     def __init__(
         self,
-        dataset_fn,
-        model,
-        label: str | None = None,
+        model: DataTypeModel,
+        label: str,
     ):
-        self.dataset_fn = dataset_fn
+        self.model = model
         self.label = label
 
     @staticmethod
@@ -20,7 +20,7 @@ class LinePlot(PlotStrategy):
 
     def __call__(self, ax: Axes, **kwargs):
         try:
-            x, y = self.dataset_fn()
+            x, y = self.model.get_data(self.label)
         except DataNotReadyException:
             return
         try:
