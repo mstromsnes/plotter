@@ -6,6 +6,7 @@ from enum import Enum
 import logging
 
 URL = "http://192.168.4.141:8000"
+# URL = "http://localhost:8000"
 ARCHIVE_ENDPOINT = "/archive/"
 
 logger = logging.getLogger("remotereader")
@@ -38,12 +39,22 @@ def download_archive(
 
 def send_request(timestamp: pa.DateTime | None, format: Format = Format.Parquet):
     format_endpoint = format.value
-    request_url = URL + ARCHIVE_ENDPOINT + format_endpoint
+    query = make_query_string(start=timestamp) if timestamp is not None else ""
+    request_url = URL + ARCHIVE_ENDPOINT + format_endpoint + query
     if timestamp is None:
         response = requests.get(request_url)
     else:
         response = requests.post(request_url, json=str(timestamp))
     return response
+
+
+def make_query_string(**kwargs):
+    if len(kwargs) == 0:
+        return ""
+    query = "?"
+    for key, value in kwargs.items():
+        query += f"{key}={value}&"
+    return query[:-1]  # Cut off the last &
 
 
 def get_bytes_content(response: requests.Response) -> BytesIO:

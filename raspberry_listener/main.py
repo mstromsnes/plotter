@@ -1,30 +1,46 @@
-from PySide6 import QtGui, QtCore, QtWidgets
-import mainwindow
-from datathread import DataThread
-from datamediator import DataMediator
 import logging
+
+from controller import register_raspberry_sensor_data
+from datamodels import DataTypeManager, HumidityModel, TemperatureModel
+from datathread import DataThreadController
+from PySide6 import QtCore, QtWidgets
+from sources import SensorDataFrameHandler
+from ui.dataplotterwindow import DataPlotterWindow
 
 
 def main():
     app = QtWidgets.QApplication()
-    data_source = DataMediator()
-    window = mainwindow.MainWindow(data_source)
-    datathread = DataThread(data_source, window)
+    available_datasets = ["Pi-sensors"]
 
+    datatype_manager = DataTypeManager()
+    temperature_model = TemperatureModel()
+    humidity_model = HumidityModel()
+    datatype_manager.register_datatype(temperature_model)
+    datatype_manager.register_datatype(humidity_model)
+
+    def load_dataset(name: str) -> DataThreadController:
+        match name:
+            case "Pi-sensors":
+                handler = SensorDataFrameHandler()
+                register_raspberry_sensor_data(
+                    handler, temperature_model, humidity_model, name
+                )
+                thread = DataThreadController(handler)
+                data_collection_timer.timeout.connect(thread.update_data)
+                thread.finished.connect(window.update_visible_plot)
+                return thread
+            case _:
+                raise KeyError(f"Dataset {name} not available")
+
+    window = DataPlotterWindow(available_datasets, load_dataset, datatype_manager)
     data_collection_timer = QtCore.QTimer()
 
-    data_collection_timer.timeout.connect(datathread.gather_data)
-    datathread.finished.connect(window.update_visible_plot)
-    window.resize(800, 600)
+    window.resize(1200, 600)
     window.show()
     window.update_plots()
     data_collection_timer.timeout.emit()
     data_collection_timer.start(5000)
     app.exec()
-
-
-def gather_data(data_source: DataMediator):
-    data_source.merge_new_data_into_dataframe()
 
 
 if __name__ == "__main__":
