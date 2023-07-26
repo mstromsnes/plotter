@@ -45,15 +45,15 @@ class PlotManager(ABC):
 
         return wrapper
 
-    def __init__(self, draw_widget: DrawWidget, title: str | None):
+    def __init__(
+        self,
+        draw_widget: DrawWidget,
+        model: DataTypeModel,
+        subplot_kwargs: dict = {},
+    ):
         self.widget = draw_widget
-        self.set_title(title)
-
-    def set_title(self, title: str | None):
-        ...
-        # self.title = title
-        # if self.title is not None:
-        #     self.widget.figure.suptitle(self.title)
+        self.model = model
+        self.subplot_kwargs = subplot_kwargs
 
     def _rescale(self):
         for ax in self.axes:
@@ -75,7 +75,8 @@ class PlotManager(ABC):
         ...
 
     @draw
-    def plot(self, kwarg_supplier: Callable[[PlotStrategy], dict[str, Any]]):
+    def plot(self):
+        kwarg_supplier = self.get_kwarg_supplier()
         for ax in self.axes:
             for plot in self.plotting_strategies[ax]:
                 try:
@@ -83,6 +84,10 @@ class PlotManager(ABC):
                 except DataNotReadyException:
                     pass
             ax.legend()
+
+    @abstractmethod
+    def get_kwarg_supplier(self) -> Callable[[PlotStrategy], dict[str, Any]]:
+        ...
 
     @abstractmethod
     def remove_plotting_strategy(self, *args, **kwargs):
@@ -93,14 +98,16 @@ class OneAxesPlotManager(PlotManager):
     """Draws all plots in a single axes."""
 
     def __init__(
-        self, widget: DrawWidget, model: DataTypeModel, title: str | None = None
+        self,
+        widget: DrawWidget,
+        model: DataTypeModel,
+        subplot_kwargs: dict = {},
     ):
-        super().__init__(widget, title)
+        super().__init__(widget, model, subplot_kwargs)
         self._axes: Axes | None = None
         self._plotting_strategies: dict[str, PlotStrategy] = {}
         self._enabled_strategy_labels: dict[str, bool] = {}
         self._plotting_kwargs: dict[PlotStrategy, dict[str, Any]] = defaultdict(dict)
-        self.model = model
 
     @property
     def axes(self):
@@ -119,8 +126,8 @@ class OneAxesPlotManager(PlotManager):
         else:
             return {}
 
-    def plot(self):
-        return super().plot(lambda plot: self._plotting_kwargs[plot])
+    def get_kwarg_supplier(self) -> Callable[[PlotStrategy], dict[str, Any]]:
+        return lambda plot: self._plotting_kwargs[plot]
 
     def _create_plot(self, label: str, plot_type: type[PlotStrategy], *args, **kwargs):
         strategy = plot_type(self.model, label)
@@ -136,7 +143,7 @@ class OneAxesPlotManager(PlotManager):
         self, label: str, plot_type: type[PlotStrategy], *args, **kwargs
     ):
         if self._axes is None:
-            self._axes = self.widget.add_axes()
+            self._axes = self.widget.add_axes(**self.subplot_kwargs)
         if not label in self._plotting_strategies.keys():
             self._create_plot(label, plot_type, *args, **kwargs)
         self._enable_strategy(label)
