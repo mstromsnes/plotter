@@ -4,7 +4,7 @@ import pandas as pd
 import pandera as pa
 from sources import (
     DataNotReadyException,
-    FrameHandler,
+    DataLoader,
 )
 from .datatypes import SensorData, SensorType, Sensor
 from pandera.typing import DataFrame
@@ -20,7 +20,7 @@ from .remotereader import (
 )
 
 
-class SensorDataFrameHandler(FrameHandler):
+class SensorDataFrameHandler(DataLoader):
     def __init__(self):
         self._dataframe: DataFrame | None = None
 
@@ -61,10 +61,8 @@ class SensorDataFrameHandler(FrameHandler):
         return self._dataframe
 
     def initial_load(self):
-        two_days_ago = pd.Timestamp(
-            datetime.datetime.now() - datetime.timedelta(days=2)
-        )
-        self._dataframe = self._load_dataframe(two_days_ago)
+        time = pd.Timestamp(datetime.datetime.now() - datetime.timedelta(days=7))
+        self._dataframe = self._load_dataframe(time)
 
     def update_data(self):
         if self._dataframe is None:
