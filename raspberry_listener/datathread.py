@@ -1,5 +1,5 @@
 from PySide6 import QtCore
-from sources import FrameHandler
+from sources import DataLoader
 from typing import Callable
 import debugpy
 
@@ -9,7 +9,7 @@ class DataThreadController(QtCore.QObject):
     init_load = QtCore.Signal()
     update_data = QtCore.Signal()
 
-    def __init__(self, data_source: FrameHandler):
+    def __init__(self, data_source: DataLoader):
         super().__init__()
         self.workerThread = QtCore.QThread()
         self.data_source = data_source

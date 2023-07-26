@@ -1,2 +1,2 @@
-from .framehandler import FrameHandler, DataNotReadyException
+from .dataloader import DataLoader, DataNotReadyException
 from .raspberrysensors.sensordatahandler import SensorDataFrameHandler
