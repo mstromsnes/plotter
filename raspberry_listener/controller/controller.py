@@ -1,7 +1,9 @@
 from datamodels import DataTypeModel, OneDimensionalTimeSeriesModel
-from plotstrategies import PlotStrategy, LinePlot, HistogramPlot
+from plotstrategies import PlotStrategy, LinePlot, HistogramPlot, TimeOfDayPlot
 
-SUPPORTED_PLOTS = {OneDimensionalTimeSeriesModel: {LinePlot, HistogramPlot}}
+SUPPORTED_PLOTS = {
+    OneDimensionalTimeSeriesModel: {LinePlot, HistogramPlot, TimeOfDayPlot}
+}
 
 
 def supported_plots(model: DataTypeModel) -> set[type[PlotStrategy]]:
