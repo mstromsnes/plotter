@@ -33,7 +33,13 @@ class TemperatureModel(OneDimensionalTimeSeriesModel):
     def name(self):
         return "Temperature"
 
+    def get_unit(self):
+        return "C"
+
 
 class HumidityModel(OneDimensionalTimeSeriesModel):
     def name(self):
         return "Humidity"
+
+    def get_unit(self):
+        return "%"

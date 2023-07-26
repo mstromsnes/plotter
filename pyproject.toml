@@ -20,6 +20,7 @@ requests = "^2.30.0"
 pydantic = "^1.10.7"
 pandera = {extras = ["strategies"], version = "^0.14.5"}
 fastapi = "^0.95.1"
+httpx = "^0.24.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
