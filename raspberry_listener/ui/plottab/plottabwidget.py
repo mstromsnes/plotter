@@ -1,18 +1,13 @@
 from controller import supported_plots
 from datamodels import DataTypeModel
-from plotstrategies import HistogramPlot, LinePlot, PlotStrategy
+from plotstrategies import PlotStrategy
 from PySide6 import QtWidgets
-from ui.plots import HistogramWidget, LinePlotWidget, PlotWidget
+from ui.plots import PlotWidgetFactory
 
 from .sidebar import SideBar
 
 
 class DataTypeTabWidget(QtWidgets.QTabWidget):
-    WIDGET_STRATEGY: dict[type[PlotStrategy], type[PlotWidget]] = {
-        LinePlot: LinePlotWidget,
-        HistogramPlot: HistogramWidget,
-    }
-
     def __init__(
         self,
         model: DataTypeModel,
@@ -23,8 +18,7 @@ class DataTypeTabWidget(QtWidgets.QTabWidget):
         self.widgets: list[PlotTabWidget] = []
         for supported_plot in supported_plots(model):
             try:
-                widget_type = self.WIDGET_STRATEGY[supported_plot]
-                widget = PlotTabWidget(model, widget_type)
+                widget = PlotTabWidget(model, supported_plot)
                 self.widgets.append(widget)
                 self.addTab(widget, supported_plot.name())
             except KeyError:
@@ -41,12 +35,12 @@ class PlotTabWidget(QtWidgets.QWidget):
     def __init__(
         self,
         model: DataTypeModel,
-        widget_type: type[PlotWidget],
+        plot_type: type[PlotStrategy],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.model = model
-        self.plot_widget = widget_type(self.model)
+        self.plot_widget = PlotWidgetFactory.build(plot_type, model)
         self.sidebar = SideBar(model)
         self.sidebar.button_toggled.connect(self.plot_widget.toggle_data)
         hbox = QtWidgets.QHBoxLayout(self)
