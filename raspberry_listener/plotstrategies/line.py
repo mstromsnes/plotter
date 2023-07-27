@@ -1,19 +1,11 @@
 from matplotlib.axes import Axes
 from sources import DataNotReadyException
 from matplotlib.lines import Line2D
-from .plotstrategy import PlotStrategy
+from matplotlib import dates
 from datamodels import DataTypeModel
 
 
 class LinePlot(PlotStrategy):
-    def __init__(
-        self,
-        model: DataTypeModel,
-        label: str,
-    ):
-        self.model = model
-        self.label = label
-
     @staticmethod
     def name():
         return "Line"
@@ -34,6 +26,14 @@ class LinePlot(PlotStrategy):
                 label=self.label,
                 **kwargs,
             )
+            self.set_tick_formatter(ax)
+
+    def set_tick_formatter(self, ax: Axes):
+        ax.yaxis.set_major_formatter("{x}" + f"{self.model.unit.short}")
+        locator = dates.AutoDateLocator()
+        formatter = dates.ConciseDateFormatter(locator)
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
 
     @property
     def artist(self) -> Line2D:

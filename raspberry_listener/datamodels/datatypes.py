@@ -1,5 +1,6 @@
 from typing import Protocol, Any
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 
 class DataSet_Fn(Protocol):
@@ -7,7 +8,16 @@ class DataSet_Fn(Protocol):
         ...
 
 
+@dataclass
+class Unit:
+    short: str
+    long: str
+    explanation: str
+
+
 class DataTypeModel(ABC):
+    _unit: Unit
+
     def __init__(self):
         self._has_data = False
 
@@ -33,6 +43,11 @@ class DataTypeModel(ABC):
     @abstractmethod
     def get_dataset_names(self) -> set[str]:
         ...
+
+    @classmethod
+    @property
+    def unit(cls):
+        return cls._unit
 
 
 class DataTypeManager:

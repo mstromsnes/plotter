@@ -6,13 +6,13 @@ from datamodels import DataTypeModel
 
 
 class PlotStrategy(ABC):
-    @abstractmethod
     def __init__(
         self,
         model: DataTypeModel,
-        label: str | None = None,
+        label: str,
     ):
-        ...
+        self.model = model
+        self.label = label
 
     @abstractmethod
     def __call__(self, ax: Axes, **kwargs):
@@ -31,4 +31,8 @@ class PlotStrategy(ABC):
 
     @abstractmethod
     def remove_artist(self):
+        ...
+
+    @abstractmethod
+    def set_tick_formatter(self, ax: Axes):
         ...
