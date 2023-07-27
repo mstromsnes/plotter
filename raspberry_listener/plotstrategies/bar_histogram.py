@@ -6,14 +6,6 @@ import numpy as np
 
 
 class HistogramPlot(PlotStrategy):
-    def __init__(
-        self,
-        model: DataTypeModel,
-        label: str,
-    ):
-        self.label = label
-        self.model = model
-
     @staticmethod
     def name():
         return "Histogram"

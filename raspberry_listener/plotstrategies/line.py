@@ -6,14 +6,6 @@ from datamodels import DataTypeModel
 
 
 class LinePlot(PlotStrategy):
-    def __init__(
-        self,
-        model: DataTypeModel,
-        label: str,
-    ):
-        self.model = model
-        self.label = label
-
     @staticmethod
     def name():
         return "Line"
