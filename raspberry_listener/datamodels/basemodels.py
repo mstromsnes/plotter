@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datamodels import DataSet_Fn, DataTypeModel
+from datamodels import DataSet_Fn, DataTypeModel, Unit
 from numpy.typing import NDArray
 from numpy import datetime64, floating
 
@@ -30,16 +30,14 @@ class OneDimensionalTimeSeriesModel(DataTypeModel):
 
 
 class TemperatureModel(OneDimensionalTimeSeriesModel):
+    _unit = Unit(short="C", long="Celcius", explanation="Temperature")
+
     def name(self):
         return "Temperature"
 
-    def get_unit(self):
-        return "C"
-
 
 class HumidityModel(OneDimensionalTimeSeriesModel):
+    _unit = Unit(short="%", long="Percent Humidity", explanation="Relative Humidity")
+
     def name(self):
         return "Humidity"
-
-    def get_unit(self):
-        return "%"
