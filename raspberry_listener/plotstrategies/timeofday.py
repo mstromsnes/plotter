@@ -31,7 +31,7 @@ class TimeOfDayPlot(PlotStrategy):
             self.remove_artist()
         except AttributeError:
             pass
-        self.plot_clock(ax, counts, bins, **kwargs)
+        self.set_tick_formatter(ax)
 
     def plot_clock(self, ax: PolarAxes, counts: np.ndarray, bins: np.ndarray, **kwargs):
         bottom = np.zeros(24)
@@ -91,6 +91,8 @@ class TimeOfDayPlot(PlotStrategy):
     def artist(self) -> Sequence[BarContainer]:
         return self._artists
 
+    def set_tick_formatter(self, ax):
+        ax.yaxis.set_major_formatter(NullFormatter())
 
     def remove_artist(self):
         try:

@@ -1,5 +1,5 @@
 from matplotlib.axes import Axes
-from .plotstrategy import PlotStrategy
+from matplotlib.ticker import FuncFormatter
 from sources import DataNotReadyException
 from datamodels import DataTypeModel
 import numpy as np
@@ -46,6 +46,7 @@ class HistogramPlot(PlotStrategy):
             alpha=0.8,
             **kwargs,
         )
+        self.set_tick_formatter(ax)
 
     def get_color(self):
         try:
@@ -57,6 +58,11 @@ class HistogramPlot(PlotStrategy):
     @property
     def artist(self):
         return self._artists
+
+    def set_tick_formatter(self, ax):
+        formatter = FuncFormatter(lambda x, pos: f"{x}{self.model.unit.short}")
+        formatter.set_offset_string(self.model.unit.explanation)
+        ax.xaxis.set_major_formatter(formatter)
 
     def remove_artist(self):
         try:

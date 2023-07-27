@@ -32,3 +32,7 @@ class PlotStrategy(ABC):
     @abstractmethod
     def remove_artist(self):
         ...
+
+    @abstractmethod
+    def set_tick_formatter(self, ax: Axes):
+        ...
