@@ -70,14 +70,14 @@ class PlotWidgetFactory:
 
     @classmethod
     def _build_timeofday_widget(cls, model: DataTypeModel) -> PlotWidget:
-        lineplot_widget = PlotWidget(
+        timeofday_widget = PlotWidget(
             model,
             OneAxesPlotManager,
             plotstrategies.TimeOfDayPlot,
             rescale_plot=False,
             subplot_kwargs={"projection": "polar"},
         )
-        lineplot_widget.add_navigation_bar(
+        timeofday_widget.add_navigation_bar(
             NavBarBuilder().navigation_toolbar().freeze_plot()
         )
-        return lineplot_widget
+        return timeofday_widget
