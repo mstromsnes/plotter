@@ -1,6 +1,6 @@
-from typing import Protocol, Any
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any, Protocol
 
 
 class DataSet_Fn(Protocol):

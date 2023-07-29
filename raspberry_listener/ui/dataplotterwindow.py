@@ -1,8 +1,10 @@
-from PySide6 import QtWidgets, QtCore, QtGui
-from datamodels import DataTypeManager
-from .plottab import DataTypeTabWidget
-from datathread import DataThreadController
 from typing import Callable
+
+from datamodels import DataTypeManager
+from datathread import DataThreadController
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from .plottab import DataTypeTabWidget
 
 
 class DataSetList(QtWidgets.QDialog):

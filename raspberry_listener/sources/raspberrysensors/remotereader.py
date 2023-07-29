@@ -1,9 +1,10 @@
+import logging
+from enum import Enum
+from io import BytesIO
+
+import pandera as pa
 import requests
 from fastapi import HTTPException
-from io import BytesIO
-import pandera as pa
-from enum import Enum
-import logging
 
 URL = "http://192.168.4.141:8000"
 # URL = "http://localhost:8000"

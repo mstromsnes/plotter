@@ -1,7 +1,9 @@
 from collections import defaultdict
-from datamodels import DataSet_Fn, DataTypeModel, Unit
-from numpy.typing import NDArray
+
 from numpy import datetime64, floating
+from numpy.typing import NDArray
+
+from .datatypes import DataSet_Fn, DataTypeModel, Unit
 
 OneDimensionalTimeSeries = tuple[NDArray[datetime64], NDArray[floating]]
 

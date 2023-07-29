@@ -1,15 +1,14 @@
+from datetime import datetime
 from enum import Enum
+from functools import cache
+from math import ceil
+
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel, validator
 import pandas as pd
 import pandera as pa
-from pandera.typing import Series, Index
-from datetime import datetime
-
-
-from math import ceil
-from functools import cache
+from pandera.typing import Index, Series
+from pydantic import BaseModel, validator
 
 
 class DataSet(tuple):

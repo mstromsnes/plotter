@@ -1,7 +1,8 @@
-from PySide6 import QtWidgets, QtCharts, QtCore, QtGui
-import numpy as np
 from datetime import datetime, timedelta
+
 import matplotlib.dates
+import numpy as np
+from PySide6 import QtCharts, QtCore, QtGui, QtWidgets
 
 
 class LineChart(QtWidgets.QWidget):

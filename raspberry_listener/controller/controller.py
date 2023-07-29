@@ -1,5 +1,5 @@
 from datamodels import DataTypeModel, OneDimensionalTimeSeriesModel
-from plotstrategies import PlotStrategy, LinePlot, HistogramPlot, TimeOfDayPlot
+from plotstrategies import HistogramPlot, LinePlot, PlotStrategy, TimeOfDayPlot
 
 SUPPORTED_PLOTS = {
     OneDimensionalTimeSeriesModel: {LinePlot, HistogramPlot, TimeOfDayPlot}

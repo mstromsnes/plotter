@@ -1,5 +1,4 @@
-from .lineplotwidget import LinePlotWidget
-
 from .histogramwidget import HistogramWidget
-from .timeofdaywidget import TimeOfDayWidget
+from .lineplotwidget import LinePlotWidget
 from .plotwidget import PlotWidget, PlotWidgetFactory
+from .timeofdaywidget import TimeOfDayWidget

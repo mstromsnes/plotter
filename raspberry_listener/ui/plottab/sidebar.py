@@ -1,9 +1,10 @@
-from PySide6 import QtWidgets, QtGui, QtCore
-from functools import partial
-from dataclasses import dataclass
-from datamodels import DataTypeModel
-from typing import Self
 from collections import defaultdict
+from dataclasses import dataclass
+from functools import partial
+from typing import Self
+
+from datamodels import DataTypeModel
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 @dataclass

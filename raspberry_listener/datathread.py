@@ -1,7 +1,8 @@
+from typing import Callable
+
+import debugpy
 from PySide6 import QtCore
 from sources import DataLoader
-from typing import Callable
-import debugpy
 
 
 class DataThreadController(QtCore.QObject):
