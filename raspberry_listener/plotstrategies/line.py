@@ -1,11 +1,22 @@
-from matplotlib.axes import Axes
-from sources import DataNotReadyException
-from matplotlib.lines import Line2D
-from matplotlib import dates
 from datamodels import DataTypeModel
+from matplotlib import dates
+from matplotlib.axes import Axes
+from matplotlib.lines import Line2D
+from sources import DataNotReadyException
+
+from .color import Color
+from .plotstrategy import PlotStrategy
 
 
 class LinePlot(PlotStrategy):
+    def __init__(
+        self,
+        model: DataTypeModel,
+        label: str,
+    ):
+        super().__init__(model, label)
+        self.color = None
+
     @staticmethod
     def name():
         return "Line"
@@ -24,6 +35,7 @@ class LinePlot(PlotStrategy):
                 x,
                 y,
                 label=self.label,
+                color=self.color,
                 **kwargs,
             )
             self.set_tick_formatter(ax)
@@ -45,3 +57,6 @@ class LinePlot(PlotStrategy):
             del self._artists
         except AttributeError:
             pass
+
+    def set_colorsource(self, colors: Color):
+        self.color = colors

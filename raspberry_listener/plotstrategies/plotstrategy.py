@@ -1,7 +1,12 @@
-from typing import Sequence
 from abc import ABC, abstractmethod
+from typing import Protocol, Sequence
+
+from datamodels import DataTypeModel
 from matplotlib.axes import Axes
-from matplotlib.artist import Artist
+from matplotlib.colors import Colormap, Normalize
+
+from .color import Color
+
 
 class PlotNotReadyException(Exception):
     ...
@@ -21,11 +26,6 @@ class PlotStrategy(ABC):
         """A method that plots something from self on axes ax."""
         ...
 
-    @property
-    @abstractmethod
-    def artist(self) -> Artist | Sequence[Artist]:
-        ...
-
     @staticmethod
     @abstractmethod
     def name() -> str:
@@ -37,4 +37,16 @@ class PlotStrategy(ABC):
 
     @abstractmethod
     def set_tick_formatter(self, ax: Axes):
+        ...
+
+    @abstractmethod
+    def set_colorsource(self, colors: Sequence[Color] | Colormap | Color):
+        ...
+
+
+class ColormapStrategy(Protocol):
+    def get_colormap(self) -> Colormap:
+        ...
+
+    def get_normalizer(self) -> Normalize:
         ...

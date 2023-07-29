@@ -1,13 +1,17 @@
-from ui.drawwidget import DrawWidget, NavBarBuilder
+import matplotlib
+import plotstrategies
 from datamodels import DataTypeModel
-from PySide6 import QtWidgets
+from plotmanager import OneAxesPlotManager, PlotManager
 from plotstrategies import PlotStrategy
+from plotstrategies.color import ColorMapStrategy, ColorStrategy, CyclicColorStrategy
 from plotstrategies.legend import (
     ColorbarLegend,
     ExternalLegend,
     InternalLegend,
     LegendStrategy,
 )
+from PySide6 import QtWidgets
+from ui.drawwidget import DrawWidget, NavBarBuilder
 
 
 class PlotWidget(DrawWidget):
@@ -15,6 +19,7 @@ class PlotWidget(DrawWidget):
         self,
         model: DataTypeModel,
         manager_type: type[PlotManager],
+        color_manager: ColorStrategy,
         legend_strategy: LegendStrategy,
         plot_type: type[PlotStrategy],
         rescale_plot: bool,
@@ -24,8 +29,7 @@ class PlotWidget(DrawWidget):
         super().__init__(rescale_plot, parent=parent)
         self.model = model
         self.manager = manager_type(
-            legend_strategy, 
-            subplot_kwargs
+            self, model, color_manager, legend_strategy, subplot_kwargs
         )
         self.plot_type = plot_type
 
@@ -57,6 +61,7 @@ class PlotWidgetFactory:
         lineplot_widget = PlotWidget(
             model,
             OneAxesPlotManager,
+            CyclicColorStrategy(matplotlib.color_sequences["tab10"]),  # type: ignore
             ExternalLegend(),
             plotstrategies.LinePlot,
             rescale_plot=True,
@@ -75,6 +80,7 @@ class PlotWidgetFactory:
         histogram_widget = PlotWidget(
             model,
             OneAxesPlotManager,
+            CyclicColorStrategy(matplotlib.color_sequences["tab10"]),  # type: ignore
             ExternalLegend(),
             plotstrategies.HistogramPlot,
             rescale_plot=True,
@@ -89,6 +95,7 @@ class PlotWidgetFactory:
         timeofday_widget = PlotWidget(
             model,
             OneAxesPlotManager,
+            ColorMapStrategy(matplotlib.colormaps["turbo"]),  # type: ignore
             ColorbarLegend(),
             plotstrategies.TimeOfDayPlot,
             rescale_plot=False,
