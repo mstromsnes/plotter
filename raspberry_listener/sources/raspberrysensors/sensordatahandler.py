@@ -2,16 +2,12 @@ import datetime
 
 import pandas as pd
 import pandera as pa
-from sources import (
-    DataNotReadyException,
-    DataLoader,
-)
-from .datatypes import SensorData, SensorType, Sensor
-from pandera.typing import DataFrame
-
 from numpy import datetime64, floating
 from numpy.typing import NDArray
+from pandera.typing import DataFrame
+from sources import DataLoader, DataNotReadyException
 
+from .datatypes import Sensor, SensorData, SensorType
 from .remotereader import (
     ArchiveNotAvailableException,
     Format,
@@ -32,8 +28,15 @@ class SensorDataFrameHandler(DataLoader):
         data = self._dataframe.loc[
             (*map(lambda enum: enum.value, keys), slice(None)), slice(None)
         ]
-        time_data = data.index.get_level_values(2).to_numpy()
-        temperature_data = data["reading"].to_numpy()
+        data = (
+            data.reset_index()
+            .set_index("timestamp")["reading"]
+            .resample("60s")
+            .median()
+        )
+        data = data[data.notna()]
+        time_data = data.index.to_numpy()
+        temperature_data = data.to_numpy()
         return time_data, temperature_data
 
     def _load_dataframe(

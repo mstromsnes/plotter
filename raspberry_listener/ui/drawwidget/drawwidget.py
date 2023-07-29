@@ -1,7 +1,8 @@
-from PySide6 import QtWidgets
+from typing import Protocol
+
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from typing import Protocol
+from PySide6 import QtWidgets
 
 
 class LayoutBuilder(Protocol):

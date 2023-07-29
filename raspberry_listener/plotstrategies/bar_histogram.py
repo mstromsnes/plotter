@@ -1,11 +1,20 @@
+import numpy as np
+from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter
 from sources import DataNotReadyException
-from datamodels import DataTypeModel
-import numpy as np
+
+from raspberry_listener.datamodels import DataTypeModel
+
+from .color import Color
+from .plotstrategy import PlotStrategy
 
 
 class HistogramPlot(PlotStrategy):
+    def __init__(self, model: DataTypeModel, label: str):
+        super().__init__(model, label)
+        self.color = None
+
     @staticmethod
     def name():
         return "Histogram"
@@ -21,14 +30,10 @@ class HistogramPlot(PlotStrategy):
         histogram, bin_edges = np.histogram(
             barchart_data, bins=np.min((16, unique_values)), density=True
         )
-        try:
-            self._artists.remove()
-        except AttributeError:
-            pass
-        if not "color" in kwargs.keys():
-            kwargs["color"] = self.get_color()
+        histogram = histogram / np.sum(histogram)
+        self.remove_artist()
         width = bin_edges[1] - bin_edges[0]
-        self._artists = ax.bar(
+        self.artist = ax.bar(
             bin_edges[:-1],
             histogram,
             width=width,
@@ -36,20 +41,10 @@ class HistogramPlot(PlotStrategy):
             label=self.label,
             log=True,
             alpha=0.8,
+            color=self.color,
             **kwargs,
         )
         self.set_tick_formatter(ax)
-
-    def get_color(self):
-        try:
-            return self._artists.patches[0].get_facecolor()
-        except AttributeError:
-            pass
-        return None
-
-    @property
-    def artist(self):
-        return self._artists
 
     def set_tick_formatter(self, ax):
         formatter = FuncFormatter(lambda x, pos: f"{x}{self.model.unit.short}")
@@ -59,6 +54,9 @@ class HistogramPlot(PlotStrategy):
     def remove_artist(self):
         try:
             self.artist.remove()
-            del self._artists
+            del self.artist
         except AttributeError:
             pass
+
+    def set_colorsource(self, colors: Color):
+        self.color = colors

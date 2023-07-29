@@ -1,1 +1,1 @@
-from .datatypes import SensorType, Sensor
+from .datatypes import Sensor, SensorType

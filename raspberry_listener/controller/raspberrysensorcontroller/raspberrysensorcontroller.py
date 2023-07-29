@@ -1,7 +1,8 @@
-from datamodels import TemperatureModel, HumidityModel
+from functools import partial
+
+from datamodels import HumidityModel, TemperatureModel
 from sources import SensorDataFrameHandler
 from sources.raspberrysensors.datatypes import Sensor, SensorType
-from functools import partial
 
 
 def register_raspberry_sensor_data(

@@ -1,2 +1,2 @@
-from .datatypes import DataSet_Fn, DataTypeModel, DataTypeManager
-from .basemodels import TemperatureModel, HumidityModel, OneDimensionalTimeSeriesModel
+from .basemodels import HumidityModel, OneDimensionalTimeSeriesModel, TemperatureModel
+from .datatypes import DataSet_Fn, DataTypeManager, DataTypeModel, Unit

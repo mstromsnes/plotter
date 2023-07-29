@@ -1,8 +1,10 @@
-from PySide6 import QtWidgets
-from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
-from .components import FreezePlotButton, RescalePlotButton, SimplifyPlotSpinBox
-from typing import Self
 from enum import Enum, auto
+from typing import Self
+
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
+from PySide6 import QtWidgets
+
+from .components import FreezePlotButton, RescalePlotButton, SimplifyPlotSpinBox
 from .drawwidget import DrawWidget
 
 

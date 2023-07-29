@@ -1,9 +1,17 @@
-from ui.drawwidget import DrawWidget, NavBarBuilder
-from datamodels import DataTypeModel
-from PySide6 import QtWidgets
-from plotstrategies import PlotStrategy
-from plotmanager import PlotManager, OneAxesPlotManager
+import matplotlib
 import plotstrategies
+from datamodels import DataTypeModel
+from plotmanager import OneAxesPlotManager, PlotManager
+from plotstrategies import PlotStrategy
+from plotstrategies.color import ColorMapStrategy, ColorStrategy, CyclicColorStrategy
+from plotstrategies.legend import (
+    ColorbarLegend,
+    ExternalLegend,
+    InternalLegend,
+    LegendStrategy,
+)
+from PySide6 import QtWidgets
+from ui.drawwidget import DrawWidget, NavBarBuilder
 
 
 class PlotWidget(DrawWidget):
@@ -11,6 +19,8 @@ class PlotWidget(DrawWidget):
         self,
         model: DataTypeModel,
         manager_type: type[PlotManager],
+        color_manager: ColorStrategy,
+        legend_strategy: LegendStrategy,
         plot_type: type[PlotStrategy],
         rescale_plot: bool,
         subplot_kwargs: dict = {},
@@ -18,7 +28,9 @@ class PlotWidget(DrawWidget):
     ):
         super().__init__(rescale_plot, parent=parent)
         self.model = model
-        self.manager = manager_type(self, model, subplot_kwargs)
+        self.manager = manager_type(
+            self, model, color_manager, legend_strategy, subplot_kwargs
+        )
         self.plot_type = plot_type
 
     def toggle_data(self, label, checked):
@@ -47,7 +59,12 @@ class PlotWidgetFactory:
     @classmethod
     def _build_lineplot_widget(cls, model: DataTypeModel) -> PlotWidget:
         lineplot_widget = PlotWidget(
-            model, OneAxesPlotManager, plotstrategies.LinePlot, rescale_plot=True
+            model,
+            OneAxesPlotManager,
+            CyclicColorStrategy(matplotlib.color_sequences["tab10"]),  # type: ignore
+            ExternalLegend(),
+            plotstrategies.LinePlot,
+            rescale_plot=True,
         )
         lineplot_widget.add_navigation_bar(
             NavBarBuilder()
@@ -61,7 +78,12 @@ class PlotWidgetFactory:
     @classmethod
     def _build_histogram_widget(cls, model: DataTypeModel) -> PlotWidget:
         histogram_widget = PlotWidget(
-            model, OneAxesPlotManager, plotstrategies.HistogramPlot, rescale_plot=True
+            model,
+            OneAxesPlotManager,
+            CyclicColorStrategy(matplotlib.color_sequences["tab10"]),  # type: ignore
+            ExternalLegend(),
+            plotstrategies.HistogramPlot,
+            rescale_plot=True,
         )
         histogram_widget.add_navigation_bar(
             NavBarBuilder().navigation_toolbar().freeze_plot().rescale_plot()
@@ -70,14 +92,16 @@ class PlotWidgetFactory:
 
     @classmethod
     def _build_timeofday_widget(cls, model: DataTypeModel) -> PlotWidget:
-        lineplot_widget = PlotWidget(
+        timeofday_widget = PlotWidget(
             model,
             OneAxesPlotManager,
+            ColorMapStrategy(matplotlib.colormaps["turbo"]),  # type: ignore
+            ColorbarLegend(),
             plotstrategies.TimeOfDayPlot,
             rescale_plot=False,
             subplot_kwargs={"projection": "polar"},
         )
-        lineplot_widget.add_navigation_bar(
+        timeofday_widget.add_navigation_bar(
             NavBarBuilder().navigation_toolbar().freeze_plot()
         )
-        return lineplot_widget
+        return timeofday_widget
