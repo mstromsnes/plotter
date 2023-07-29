@@ -53,6 +53,8 @@ class PlotWidgetFactory:
                 return cls._build_histogram_widget(model)
             case plotstrategies.TimeOfDayPlot:
                 return cls._build_timeofday_widget(model)
+            case plotstrategies.FlatTimeOfDay:
+                return cls._build_flat_timeofday_widget(model)
             case _:
                 raise NotImplementedError
 
@@ -100,6 +102,21 @@ class PlotWidgetFactory:
             plotstrategies.TimeOfDayPlot,
             rescale_plot=False,
             subplot_kwargs={"projection": "polar"},
+        )
+        timeofday_widget.add_navigation_bar(
+            NavBarBuilder().navigation_toolbar().freeze_plot()
+        )
+        return timeofday_widget
+
+    @classmethod
+    def _build_flat_timeofday_widget(cls, model: DataTypeModel) -> PlotWidget:
+        timeofday_widget = PlotWidget(
+            model,
+            OneAxesPlotManager,
+            ColorMapStrategy(matplotlib.colormaps["turbo"]),  # type: ignore
+            ColorbarLegend(),
+            plotstrategies.FlatTimeOfDay,
+            rescale_plot=False,
         )
         timeofday_widget.add_navigation_bar(
             NavBarBuilder().navigation_toolbar().freeze_plot()
