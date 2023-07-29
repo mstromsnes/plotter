@@ -22,6 +22,7 @@ class TimeOfDayPlot(PlotStrategy):
             self.remove_artist()
         except AttributeError:
             pass
+        self.plot_clock(ax, counts, bins, **kwargs)
         self.set_tick_formatter(ax)
 
     def plot_clock(self, ax: PolarAxes, counts: np.ndarray, bins: np.ndarray, **kwargs):

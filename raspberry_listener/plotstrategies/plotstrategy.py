@@ -2,7 +2,9 @@ from typing import Sequence
 from abc import ABC, abstractmethod
 from matplotlib.axes import Axes
 from matplotlib.artist import Artist
-from datamodels import DataTypeModel
+
+class PlotNotReadyException(Exception):
+    ...
 
 
 class PlotStrategy(ABC):

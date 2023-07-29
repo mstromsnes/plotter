@@ -2,8 +2,12 @@ from ui.drawwidget import DrawWidget, NavBarBuilder
 from datamodels import DataTypeModel
 from PySide6 import QtWidgets
 from plotstrategies import PlotStrategy
-from plotmanager import PlotManager, OneAxesPlotManager
-import plotstrategies
+from plotstrategies.legend import (
+    ColorbarLegend,
+    ExternalLegend,
+    InternalLegend,
+    LegendStrategy,
+)
 
 
 class PlotWidget(DrawWidget):
@@ -11,6 +15,7 @@ class PlotWidget(DrawWidget):
         self,
         model: DataTypeModel,
         manager_type: type[PlotManager],
+        legend_strategy: LegendStrategy,
         plot_type: type[PlotStrategy],
         rescale_plot: bool,
         subplot_kwargs: dict = {},
@@ -18,7 +23,10 @@ class PlotWidget(DrawWidget):
     ):
         super().__init__(rescale_plot, parent=parent)
         self.model = model
-        self.manager = manager_type(self, model, subplot_kwargs)
+        self.manager = manager_type(
+            legend_strategy, 
+            subplot_kwargs
+        )
         self.plot_type = plot_type
 
     def toggle_data(self, label, checked):
@@ -47,7 +55,11 @@ class PlotWidgetFactory:
     @classmethod
     def _build_lineplot_widget(cls, model: DataTypeModel) -> PlotWidget:
         lineplot_widget = PlotWidget(
-            model, OneAxesPlotManager, plotstrategies.LinePlot, rescale_plot=True
+            model,
+            OneAxesPlotManager,
+            ExternalLegend(),
+            plotstrategies.LinePlot,
+            rescale_plot=True,
         )
         lineplot_widget.add_navigation_bar(
             NavBarBuilder()
@@ -61,7 +73,11 @@ class PlotWidgetFactory:
     @classmethod
     def _build_histogram_widget(cls, model: DataTypeModel) -> PlotWidget:
         histogram_widget = PlotWidget(
-            model, OneAxesPlotManager, plotstrategies.HistogramPlot, rescale_plot=True
+            model,
+            OneAxesPlotManager,
+            ExternalLegend(),
+            plotstrategies.HistogramPlot,
+            rescale_plot=True,
         )
         histogram_widget.add_navigation_bar(
             NavBarBuilder().navigation_toolbar().freeze_plot().rescale_plot()
@@ -73,6 +89,7 @@ class PlotWidgetFactory:
         timeofday_widget = PlotWidget(
             model,
             OneAxesPlotManager,
+            ColorbarLegend(),
             plotstrategies.TimeOfDayPlot,
             rescale_plot=False,
             subplot_kwargs={"projection": "polar"},
