@@ -6,6 +6,8 @@ from typing import Any, Callable, Hashable, Mapping, Sequence
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 from plotstrategies import PlotStrategy
+from plotstrategies.color import ColorStrategy
+from plotstrategies.legend import LegendStrategy
 from sources import DataNotReadyException
 from ui.drawwidget import DrawWidget
 
@@ -49,11 +51,15 @@ class PlotManager(ABC):
         self,
         draw_widget: DrawWidget,
         model: DataTypeModel,
+        color_strategy: ColorStrategy,
+        legend_strategy: LegendStrategy,
         subplot_kwargs: dict = {},
     ):
         self.widget = draw_widget
         self.model = model
         self.subplot_kwargs = subplot_kwargs
+        self.color_strategy = color_strategy
+        self.legend_strategy = legend_strategy
 
     def _rescale(self):
         for ax in self.axes:
@@ -76,6 +82,8 @@ class PlotManager(ABC):
 
     @draw
     def plot(self):
+        if not self.has_strategies():
+            return
         kwarg_supplier = self.get_kwarg_supplier()
         for ax in self.axes:
             for plot in self.plotting_strategies[ax]:
@@ -83,7 +91,13 @@ class PlotManager(ABC):
                     plot(ax, **kwarg_supplier(plot))
                 except DataNotReadyException:
                     pass
-            ax.legend()
+            self.legend_strategy(
+                ax=ax, fig=self.widget.figure, strategies=self.plotting_strategies[ax]
+            )
+
+    @abstractmethod
+    def has_strategies(self) -> bool:
+        ...
 
     @abstractmethod
     def get_kwarg_supplier(self) -> Callable[[PlotStrategy], dict[str, Any]]:
@@ -101,9 +115,11 @@ class OneAxesPlotManager(PlotManager):
         self,
         widget: DrawWidget,
         model: DataTypeModel,
+        color_manager: ColorStrategy,
+        legend_strategy: LegendStrategy,
         subplot_kwargs: dict = {},
     ):
-        super().__init__(widget, model, subplot_kwargs)
+        super().__init__(widget, model, color_manager, legend_strategy, subplot_kwargs)
         self._axes: Axes | None = None
         self._plotting_strategies: dict[str, PlotStrategy] = {}
         self._enabled_strategy_labels: dict[str, bool] = {}
@@ -131,6 +147,7 @@ class OneAxesPlotManager(PlotManager):
 
     def _create_plot(self, label: str, plot_type: type[PlotStrategy], *args, **kwargs):
         strategy = plot_type(self.model, label)
+        strategy.set_colorsource(self.color_strategy.get_color(label))
         self._plotting_strategies[label] = strategy
 
     def _enable_strategy(self, label):
@@ -153,8 +170,9 @@ class OneAxesPlotManager(PlotManager):
         strategy = self._plotting_strategies[label]
         strategy.remove_artist()
         self._disable_strategy(label)
-        if not any(self._enabled_strategy_labels.values()):
+        if not self.has_strategies():
             self.widget.remove_axes(self._axes)
+            self.legend_strategy.remove_legend()
             self._axes = None
         self.plot()
 
@@ -163,3 +181,6 @@ class OneAxesPlotManager(PlotManager):
 
     def set_plotting_kwargs(self, strategy: PlotStrategy, **kwargs):
         self._plotting_kwargs[strategy] = kwargs
+
+    def has_strategies(self) -> bool:
+        return any(self._enabled_strategy_labels.values())
