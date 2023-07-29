@@ -149,6 +149,8 @@ class FlatTimeOfDay(PlotStrategy):
         except AttributeError:
             pass
         self.plot_stacked_bar(ax, counts, bins, **kwargs)
+        self.plot_mean_line(ax, mean_x_values, mean_values)
+
         self.set_tick_formatter(ax)
 
     def get_plot_data(self):
@@ -158,6 +160,20 @@ class FlatTimeOfDay(PlotStrategy):
         counts, bins = self.time_of_day_histogram(timeseries, data)
         mean_x_values, mean_values = self.time_of_day_mean(timeseries, data)
         return counts, bins, mean_x_values, mean_values
+
+    def plot_mean_line(self, ax: Axes, mean_x_axis, mean_values: np.ndarray):
+        range = np.max(mean_values) - np.min(mean_values)
+        excess_space = 0.1 * range
+        normalizer = Normalize(
+            np.min(mean_values) - excess_space, np.max(mean_values) + excess_space
+        )
+
+        secy_axis = ax.secondary_yaxis(
+            "left", functions=(normalizer.inverse, normalizer)
+        )
+        secy_axis.set_ylabel(f"Mean {self.model.name()}")
+        ax.plot(mean_x_axis, normalizer(mean_values))
+
     def plot_stacked_bar(
         self,
         ax: Axes,
