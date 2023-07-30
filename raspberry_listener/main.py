@@ -37,7 +37,6 @@ def main():
 
     window.resize(1200, 600)
     window.show()
-    window.update_plots()
     data_collection_timer.timeout.emit()
     data_collection_timer.start(5000)
     app.exec()

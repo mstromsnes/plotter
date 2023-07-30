@@ -4,6 +4,7 @@ from typing import Sequence
 from matplotlib.axes import Axes
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import Colorbar
+from matplotlib.colors import Normalize
 from matplotlib.figure import Figure
 from matplotlib.legend import Legend
 
@@ -80,5 +81,4 @@ class ColorbarLegend(LegendStrategy):
         print("REMOVE")
         if self.colorbar is None:
             return
-        self.colorbar.ax.remove()
-        self.colorbar = None
+        self.colorbar.update_normal(ScalarMappable(Normalize(0, 1), "Greys"))
