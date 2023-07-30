@@ -49,7 +49,6 @@ class PlotWidget(DrawWidget):
     def plot(self):
         self.manager.plot()
 
-    @ensure_manager
     def set_manager(self, manager: PlotManager):
         self.manager = manager
 
