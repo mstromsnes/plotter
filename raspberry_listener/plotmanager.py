@@ -32,7 +32,7 @@ class VerticalLayoutManager(LayoutManager):
         num_axes = len(self._plotmanager.axes)
 
 
-class PlotManager(ABC):
+class PlotManager:
     @staticmethod
     def draw(func):
         """Decorator for plotting functions. Prevents plotting if the canvas is not visible and if the widget has deactivated live plotting."""
@@ -51,15 +51,17 @@ class PlotManager(ABC):
         self,
         draw_widget: DrawWidget,
         model: DataTypeModel,
-        color_strategy: ColorStrategy,
-        legend_strategy: LegendStrategy,
-        subplot_kwargs: dict = {},
+        plot_strategy: type[PlotStrategy],
+        axes: AxesStrategy,
+        color: ColorStrategy,
+        legend: LegendStrategy,
     ):
         self.widget = draw_widget
         self.model = model
-        self.subplot_kwargs = subplot_kwargs
-        self.color_strategy = color_strategy
-        self.legend_strategy = legend_strategy
+        self.plot_strategy = plot_strategy
+        self.axes = axes
+        self.color = color
+        self.legend = legend
 
     def _rescale(self):
         for ax in self.axes:
@@ -86,14 +88,8 @@ class PlotManager(ABC):
             return
         kwarg_supplier = self.get_kwarg_supplier()
         for ax in self.axes:
-            for plot in self.plotting_strategies[ax]:
-                try:
-                    plot(ax, **kwarg_supplier(plot))
-                except DataNotReadyException:
-                    pass
-            self.legend_strategy(
-                ax=ax, fig=self.widget.figure, strategies=self.plotting_strategies[ax]
-            )
+    def draw_legend(self, ax: Axes, figure: Figure, strategies: Sequence[PlotStrategy]):
+        self.legend(ax, figure, strategies)
 
     @abstractmethod
     def has_strategies(self) -> bool:
