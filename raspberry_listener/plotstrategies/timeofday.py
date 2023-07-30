@@ -14,6 +14,10 @@ from sources import DataNotReadyException
 from .plotstrategy import PlotNotReadyException, PlotStrategy
 
 
+class ColorNotSetException(Exception):
+    ...
+
+
 class TimeOfDayPlot(PlotStrategy):
     @staticmethod
     def name():
@@ -53,7 +57,10 @@ class TimeOfDayPlot(PlotStrategy):
         for i in range(len(bins) - 1):
             centre_value = (bins[i] + bins[i + 1]) / 2
             left_value = bins[i]
-            color = self.colormap(X=normalizer(centre_value))
+            try:
+                color = self.colormap(X=normalizer(centre_value))
+            except AttributeError:
+                raise ColorNotSetException
             height = counts.T[i]
             artist = ax.bar(
                 x=theta,
