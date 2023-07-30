@@ -1,35 +1,16 @@
-from abc import ABC, abstractmethod
-from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Hashable, Mapping, Sequence
+from typing import Sequence
 
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from plotstrategies import PlotStrategy
+from plotstrategies.axes import AxesStrategy
 from plotstrategies.color import ColorStrategy
 from plotstrategies.legend import LegendStrategy
+from plotstrategies.plotcontainer.plotcontainer import PlotContainer
 from sources import DataNotReadyException
 from ui.drawwidget import DrawWidget
-
-
-class LayoutManager(ABC):
-    @abstractmethod
-    def add_axes(self) -> Axes:
-        ...
-
-    @abstractmethod
-    def remove_axes(self):
-        ...
-
-
-class VerticalLayoutManager(LayoutManager):
-    def __init__(self, widget: DrawWidget, plotmanager: "PlotManager"):
-        self._widget = widget
-        self._plotmanager = plotmanager
-        self._axes: dict[Hashable, tuple[Axes, tuple[int, int, int]]] = {}
-
-    def add_axes(self, key: Hashable):
-        num_axes = len(self._plotmanager.axes)
 
 
 class PlotManager:
@@ -62,121 +43,49 @@ class PlotManager:
         self.axes = axes
         self.color = color
         self.legend = legend
+        self.plots = PlotContainer()
 
     def _rescale(self):
         for ax in self.axes:
             ax.relim()
             ax.autoscale()
 
-    @property
-    @abstractmethod
-    def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
-        ...
+    def add_plotting_strategy(self, label: str):
+        if not self.plots.plot_already_constructed(label):
+            plot = self.plot_strategy(self.model, label)
+            plot.set_colorsource(self.color.get_color(label))
+            ax = self.axes.from_label(label)
+            self.plots.add_plot_strategy(label, ax, plot)
+        self.plots.enable_plot(label)
+        self.plot()
 
-    @property
-    @abstractmethod
-    def axes(self) -> Sequence[Axes]:
-        ...
-
-    @abstractmethod
-    def add_plotting_strategy(self, strategy: PlotStrategy, *args, **kwargs):
-        ...
+    def remove_plotting_strategy(self, label: str):
+        self.plots.remove_plot_strategy(label)
+        ax = self.axes.from_label(label)
+        if not self.plots.axes_has_strategies(ax):
+            print("No plots")
+            self.legend.remove_legend()
+        self.plot()
 
     @draw
     def plot(self):
-        if not self.has_strategies():
-            return
-        kwarg_supplier = self.get_kwarg_supplier()
         for ax in self.axes:
+            if self.plots.axes_has_strategies(ax):
+                self.draw_plots_to_axes(ax)
+
+    def draw_plots_to_axes(self, ax: Axes):
+        # This is where we ask Matplotlib to do the heavy lifting of creating the graphs
+        # Qt doesn't yet draw it to the screen
+        plots = self.plots.from_axes(ax)
+        for plot in plots:
+            try:
+                plot(ax)
+            except DataNotReadyException:
+                pass
+        self.draw_legend(ax, self.widget.figure, plots)
+
     def draw_legend(self, ax: Axes, figure: Figure, strategies: Sequence[PlotStrategy]):
         self.legend(ax, figure, strategies)
 
-    @abstractmethod
     def has_strategies(self) -> bool:
-        ...
-
-    @abstractmethod
-    def get_kwarg_supplier(self) -> Callable[[PlotStrategy], dict[str, Any]]:
-        ...
-
-    @abstractmethod
-    def remove_plotting_strategy(self, *args, **kwargs):
-        ...
-
-
-class OneAxesPlotManager(PlotManager):
-    """Draws all plots in a single axes."""
-
-    def __init__(
-        self,
-        widget: DrawWidget,
-        model: DataTypeModel,
-        color_manager: ColorStrategy,
-        legend_strategy: LegendStrategy,
-        subplot_kwargs: dict = {},
-    ):
-        super().__init__(widget, model, color_manager, legend_strategy, subplot_kwargs)
-        self._axes: Axes | None = None
-        self._plotting_strategies: dict[str, PlotStrategy] = {}
-        self._enabled_strategy_labels: dict[str, bool] = {}
-        self._plotting_kwargs: dict[PlotStrategy, dict[str, Any]] = defaultdict(dict)
-
-    @property
-    def axes(self):
-        return [self._axes] if self._axes is not None else []
-
-    @property
-    def plotting_strategies(self) -> Mapping[Axes, Sequence[PlotStrategy]]:
-        if self._axes is not None:
-            return {
-                self._axes: [
-                    plot_strategy
-                    for k, plot_strategy in self._plotting_strategies.items()
-                    if self._enabled_strategy_labels[k]
-                ]
-            }
-        else:
-            return {}
-
-    def get_kwarg_supplier(self) -> Callable[[PlotStrategy], dict[str, Any]]:
-        return lambda plot: self._plotting_kwargs[plot]
-
-    def _create_plot(self, label: str, plot_type: type[PlotStrategy], *args, **kwargs):
-        strategy = plot_type(self.model, label)
-        strategy.set_colorsource(self.color_strategy.get_color(label))
-        self._plotting_strategies[label] = strategy
-
-    def _enable_strategy(self, label):
-        self._enabled_strategy_labels[label] = True
-
-    def _disable_strategy(self, label: str):
-        self._enabled_strategy_labels[label] = False
-
-    def add_plotting_strategy(
-        self, label: str, plot_type: type[PlotStrategy], *args, **kwargs
-    ):
-        if self._axes is None:
-            self._axes = self.widget.add_axes(**self.subplot_kwargs)
-        if not label in self._plotting_strategies.keys():
-            self._create_plot(label, plot_type, *args, **kwargs)
-        self._enable_strategy(label)
-        self.plot()
-
-    def remove_plotting_strategy(self, label: str, *args, **kwargs):
-        strategy = self._plotting_strategies[label]
-        strategy.remove_artist()
-        self._disable_strategy(label)
-        if not self.has_strategies():
-            self.widget.remove_axes(self._axes)
-            self.legend_strategy.remove_legend()
-            self._axes = None
-        self.plot()
-
-    def update_plotting_kwargs(self, strategy: PlotStrategy, **kwargs):
-        self._plotting_kwargs[strategy] = kwargs
-
-    def set_plotting_kwargs(self, strategy: PlotStrategy, **kwargs):
-        self._plotting_kwargs[strategy] = kwargs
-
-    def has_strategies(self) -> bool:
-        return any(self._enabled_strategy_labels.values())
+        return any(self.plots.axes_has_strategies(ax) for ax in self.axes)
