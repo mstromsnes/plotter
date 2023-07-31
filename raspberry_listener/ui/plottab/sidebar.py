@@ -63,7 +63,6 @@ class SideBar(QtWidgets.QTreeView):
         start: int,
         end: int,
     ) -> None:
-        print(parent.data)
         return super().rowsInserted(parent, start, end)
 
 
@@ -84,7 +83,6 @@ class TreeModel(QtGui.QStandardItemModel):
 
     def fill_item(self, item: TreeItem) -> QtGui.QStandardItem:
         text = f"{item.text}" if item.text is not None else "N/A"
-        print(text)
         tree_item = QtGui.QStandardItem()
         tree_item.setText(text)
         return tree_item

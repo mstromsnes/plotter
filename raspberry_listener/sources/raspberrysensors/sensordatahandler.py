@@ -28,12 +28,7 @@ class SensorDataFrameHandler(DataLoader):
         data = self._dataframe.loc[
             (*map(lambda enum: enum.value, keys), slice(None)), slice(None)
         ]
-        data = (
-            data.reset_index()
-            .set_index("timestamp")["reading"]
-            .resample("60s")
-            .median()
-        )
+        data = data.reset_index().set_index("timestamp")["reading"]
         data = data[data.notna()]
         time_data = data.index.to_numpy()
         temperature_data = data.to_numpy()
