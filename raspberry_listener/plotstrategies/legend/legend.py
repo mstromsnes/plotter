@@ -72,13 +72,11 @@ class ColorbarLegend(LegendStrategy):
         except PlotNotReadyException:
             return
         if self.colorbar is None:
-            print("CREATE")
             self.colorbar = fig.colorbar(mappable)
         else:
             self.colorbar.update_normal(mappable)
 
     def remove_legend(self):
-        print("REMOVE")
         if self.colorbar is None:
             return
         self.colorbar.update_normal(ScalarMappable(Normalize(0, 1), "Greys"))

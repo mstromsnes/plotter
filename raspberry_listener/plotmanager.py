@@ -63,7 +63,6 @@ class PlotManager:
         self.plots.remove_plot_strategy(label)
         ax = self.axes.from_label(label)
         if not self.plots.axes_has_strategies(ax):
-            print("No plots")
             self.legend.remove_legend()
         self.plot()
 

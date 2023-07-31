@@ -1,12 +1,9 @@
-from time import perf_counter
 from typing import Sequence
 
 import numpy as np
 import pandas as pd
-from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
 from matplotlib.container import BarContainer
-from matplotlib.figure import Figure
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.ticker import NullFormatter
 from sources import DataNotReadyException
@@ -25,21 +22,14 @@ class TimeOfDayPlot(PlotStrategy):
 
     def __call__(self, ax: PolarAxes, **kwargs):
         try:
-            before = perf_counter()
             counts, bins = self.time_of_day_histogram()
-            after = perf_counter()
-            print(f"{after-before} seconds for histogram calculation")
         except DataNotReadyException:
             return
         try:
             self.remove_artist()
         except AttributeError:
             pass
-        before = perf_counter()
         self.plot_clock(ax, counts, bins, **kwargs)
-        after = perf_counter()
-        print(f"{after-before} seconds for plotting")
-
         self.set_tick_formatter(ax)
 
     def plot_clock(
@@ -96,7 +86,6 @@ class TimeOfDayPlot(PlotStrategy):
         first_edge = np.min(data)
         last_edge = np.max(data)
         bin_count = min(64, len(np.unique(data)))
-        print(bin_count)
         bin_edges = np.linspace(
             first_edge, last_edge, bin_count, endpoint=True, dtype=data.dtype
         )
