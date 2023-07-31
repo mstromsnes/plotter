@@ -28,6 +28,10 @@ class DataSetList(QtWidgets.QDialog):
         self.load_button.clicked.connect(self.choose_dataset_and_close)
         self.listwidget.doubleClicked.connect(self.choose_dataset_and_close)
 
+    def update_datasets(self, datasets: list[str]):
+        self.listwidget.clear()
+        self.listwidget.addItems(datasets)
+
     def choose_dataset_and_close(self):
         # After choosing a dataset, close the widget
         chosen_item = self.listwidget.currentItem()
@@ -50,11 +54,25 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
         self.dataset_loader = dataset_loader
         self.dataset_manager = datatype_manager
         self.tab_widgets: dict[str, DataTypeTabWidget] = {}
-        self.set_menubar()
         self.tab_widget.currentChanged.connect(self.update_visible_plot)
         self.setCentralWidget(self.tab_widget)
         self._loaded_datasets: set[str] = set()
         self._data_loading_threads = {}
+
+        self.dataset_picker = DataSetList(self.available_datasets)
+        self.dataset_picker.load_dataset.connect(self._load_dataset)
+
+        self.set_menubar()
+
+    def _load_dataset(self, name: str):
+        if name not in self._loaded_datasets:
+            thread = self.dataset_loader(name)
+            self._loaded_datasets.add(name)
+            self._data_loading_threads[name] = thread
+            if name in self.available_datasets:
+                self.available_datasets.remove(name)
+            self.create_datatype_tabs(self.dataset_manager)
+            self.dataset_picker.update_datasets(self.available_datasets)
 
     def create_datatype_tabs(self, datatype_manager: DataTypeManager):
         types = datatype_manager.get_types()
@@ -78,23 +96,9 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
         menubar = self.menuBar()
 
         dataset_action = QtGui.QAction("Open &Dataset", self)
-        dataset_action.triggered.connect(self.pick_dataset_to_load)
+        dataset_action.triggered.connect(self.dataset_picker.show)
 
         menubar.addAction(dataset_action)
         add_plot_action = QtGui.QAction("Create &Plot", self)
         add_plot_action.setDisabled(True)
         menubar.addAction(add_plot_action)
-
-    def pick_dataset_to_load(self):
-        def load_dataset(name: str):
-            if name not in self._loaded_datasets:
-                thread = self.dataset_loader(name)
-                self._loaded_datasets.add(name)
-                self._data_loading_threads[name] = thread
-                if name in self.available_datasets:
-                    self.available_datasets.remove(name)
-                self.create_datatype_tabs(self.dataset_manager)
-
-        self.dataset_picker = DataSetList(list(self.available_datasets))
-        self.dataset_picker.load_dataset.connect(load_dataset)
-        self.dataset_picker.show()
