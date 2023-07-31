@@ -1,12 +1,9 @@
-from time import perf_counter
 from typing import Sequence
 
 import numpy as np
 import pandas as pd
-from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Colormap, Normalize
 from matplotlib.container import BarContainer
-from matplotlib.figure import Figure
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.ticker import NullFormatter
 from sources import DataNotReadyException

@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Sequence, Callable
+from typing import Callable, Iterator, Sequence
+
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from typing import Iterator
 
 
 class AxesStrategy(ABC):

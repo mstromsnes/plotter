@@ -1,4 +1,5 @@
 from matplotlib.axes import Axes
+
 from ..plotstrategy import PlotStrategy
 
 
