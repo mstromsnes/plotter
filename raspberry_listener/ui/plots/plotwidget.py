@@ -9,6 +9,13 @@ from plotstrategies import PlotStrategy
 from plotstrategies.axes import SingleAxesStrategy
 from plotstrategies.color import ColorMapStrategy, CyclicColorStrategy
 from plotstrategies.legend import ColorbarLegend, ExternalLegend, InternalLegend
+from plotstrategies.tick import (
+    clock_time_of_day_formatter,
+    concise_date_formatter,
+    flat_time_of_day_formatter,
+    major_tickformatter,
+    minor_tickformatter,
+)
 from PySide6 import QtWidgets
 from ui.drawwidget import DrawWidget, NavBarBuilder
 
@@ -80,6 +87,7 @@ class PlotWidgetFactory:
             axes,
             color,
             ExternalLegend(),
+            major_tick_formatter=partial(concise_date_formatter, model=model),
         )
         lineplot_widget.set_manager(manager)
         lineplot_widget.add_navigation_bar(
@@ -98,6 +106,8 @@ class PlotWidgetFactory:
             histogram_widget.figure, lambda figure: figure.subplots(1)
         )
         color = CyclicColorStrategy(matplotlib.color_sequences["tab10"])  # type: ignore
+        unit_symbol_formatter = FuncFormatter(lambda x, pos: f"{x}{model.unit.short}")
+        unit_symbol_formatter.set_offset_string(model.unit.explanation)
         manager = PlotManager(
             histogram_widget,
             model,
@@ -105,6 +115,7 @@ class PlotWidgetFactory:
             axes,
             color,
             ExternalLegend(),
+            major_tick_formatter=major_tickformatter(x_formatter=unit_symbol_formatter),
         )
         histogram_widget.set_manager(manager)
         histogram_widget.add_navigation_bar(
@@ -127,6 +138,7 @@ class PlotWidgetFactory:
             axes,
             color,
             ColorbarLegend(),
+            major_tick_formatter=clock_time_of_day_formatter,  # type: ignore
         )
         timeofday_widget.set_manager(manager)
         timeofday_widget.add_navigation_bar(

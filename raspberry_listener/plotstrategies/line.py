@@ -1,5 +1,4 @@
 from datamodels import DataTypeModel
-from matplotlib import dates
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 from sources import DataNotReadyException
@@ -38,14 +37,6 @@ class LinePlot(PlotStrategy):
                 color=self.color,
                 **kwargs,
             )
-            self.set_tick_formatter(ax)
-
-    def set_tick_formatter(self, ax: Axes):
-        ax.yaxis.set_major_formatter("{x}" + f"{self.model.unit.short}")
-        locator = dates.AutoDateLocator()
-        formatter = dates.ConciseDateFormatter(locator)
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(formatter)
 
     @property
     def artist(self) -> Line2D:

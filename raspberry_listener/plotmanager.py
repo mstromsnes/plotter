@@ -8,7 +8,8 @@ from plotstrategies import PlotStrategy
 from plotstrategies.axes import AxesStrategy
 from plotstrategies.color import ColorStrategy
 from plotstrategies.legend import LegendStrategy
-from plotstrategies.plotcontainer.plotcontainer import PlotContainer
+from plotstrategies.plotcontainer import PlotContainer
+from plotstrategies.tick import TickStrategy, major_tickformatter, minor_tickformatter
 from sources import DataNotReadyException
 from ui.drawwidget import DrawWidget
 
@@ -36,6 +37,8 @@ class PlotManager:
         axes: AxesStrategy,
         color: ColorStrategy,
         legend: LegendStrategy,
+        major_tick_formatter: TickStrategy = major_tickformatter(),
+        minor_tick_formatter: TickStrategy = minor_tickformatter(),
     ):
         self.widget = draw_widget
         self.model = model
@@ -44,6 +47,8 @@ class PlotManager:
         self.color = color
         self.legend = legend
         self.plots = PlotContainer()
+        self.major_tick_formatter = major_tick_formatter
+        self.minor_tick_formatter = minor_tick_formatter
 
     def _rescale(self):
         for ax in self.axes:
@@ -55,6 +60,7 @@ class PlotManager:
             plot = self.plot_strategy(self.model, label)
             plot.set_colorsource(self.color.get_color(label))
             ax = self.axes.from_label(label)
+            self.minor_tick_formatter(ax)
             self.plots.add_plot_strategy(label, ax, plot)
         self.plots.enable_plot(label)
         self.plot()

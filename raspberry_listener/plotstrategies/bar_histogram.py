@@ -1,7 +1,6 @@
 import numpy as np
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
-from matplotlib.ticker import FuncFormatter
 from sources import DataNotReadyException
 
 from raspberry_listener.datamodels import DataTypeModel
@@ -44,12 +43,6 @@ class HistogramPlot(PlotStrategy):
             color=self.color,
             **kwargs,
         )
-        self.set_tick_formatter(ax)
-
-    def set_tick_formatter(self, ax):
-        formatter = FuncFormatter(lambda x, pos: f"{x}{self.model.unit.short}")
-        formatter.set_offset_string(self.model.unit.explanation)
-        ax.xaxis.set_major_formatter(formatter)
 
     def remove_artist(self):
         try:
