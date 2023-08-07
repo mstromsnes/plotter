@@ -5,7 +5,6 @@ import pandas as pd
 from matplotlib.colors import Colormap, Normalize
 from matplotlib.container import BarContainer
 from matplotlib.projections.polar import PolarAxes
-from matplotlib.ticker import NullFormatter
 from sources import DataNotReadyException
 
 from .plotstrategy import PlotNotReadyException, PlotStrategy
@@ -65,17 +64,7 @@ class TimeOfDayPlot(PlotStrategy):
             )
             bottom += height
             self.artists.append(artist)
-        self.set_grid(ax)
         self._used_norm = normalizer
-
-    def set_grid(self, ax: PolarAxes):
-        angle_step = 360 // 24
-        angles = (float(i * angle_step) for i in range(24))
-        labels = (str(i) for i in range(24))
-        ax.set_thetagrids(tuple(angles), tuple(labels))
-        ax.set_theta_offset(np.pi / 2)
-        ax.set_theta_direction(-1)
-        ax.set_xlim((0, 2 * np.pi))
 
     def time_of_day_histogram(self):
         full_timeseries, full_data = self.model.get_data(self.label)
@@ -107,9 +96,6 @@ class TimeOfDayPlot(PlotStrategy):
         counts = [count_without_bins(group, bins) for _, group in grouping]
         counts = np.array(counts)
         return counts
-
-    def set_tick_formatter(self, ax):
-        ax.yaxis.set_major_formatter(NullFormatter())
 
     def remove_artist(self):
         try:
