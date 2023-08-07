@@ -1,9 +1,10 @@
-from functools import wraps
+from functools import partial, wraps
 from typing import Self
 
 import matplotlib
 import plotstrategies
 from datamodels import DataTypeModel
+from matplotlib.ticker import FuncFormatter, NullFormatter
 from plotmanager import PlotManager
 from plotstrategies import PlotStrategy
 from plotstrategies.axes import SingleAxesStrategy
@@ -17,6 +18,7 @@ from plotstrategies.tick import (
     minor_tickformatter,
 )
 from PySide6 import QtWidgets
+from ui.dataselector import DataSelector, SideBar, SideBarButtonType
 from ui.drawwidget import DrawWidget, NavBarBuilder
 
 
@@ -39,11 +41,17 @@ class PlotWidget(DrawWidget):
 
     def __init__(
         self,
+        selector: DataSelector,
         rescale_plot: bool,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(rescale_plot, parent=parent)
         self.manager: PlotManager = None  # type: ignore
+        self.h_layout = QtWidgets.QHBoxLayout()
+        self.h_layout.addWidget(selector.widget())
+        self.h_layout.addLayout(self.canvas_toolbar_layout, stretch=1)
+        selector.data_toggled.connect(self.toggle_data)  # type: ignore
+        self.setLayout(self.h_layout)
 
     @ensure_manager
     def toggle_data(self, label, checked):
@@ -62,7 +70,11 @@ class PlotWidget(DrawWidget):
 
 class PlotWidgetFactory:
     @classmethod
-    def build(cls, plot_type: type[PlotStrategy], model: DataTypeModel) -> PlotWidget:
+    def build(
+        cls,
+        model: DataTypeModel,
+        plot_type: type[PlotStrategy],
+    ) -> PlotWidget:
         match plot_type:
             case plotstrategies.LinePlot:
                 return cls._build_lineplot_widget(model)
@@ -75,7 +87,8 @@ class PlotWidgetFactory:
 
     @classmethod
     def _build_lineplot_widget(cls, model: DataTypeModel) -> PlotWidget:
-        lineplot_widget = PlotWidget(rescale_plot=True)
+        selector = cls._build_checkbox_sidebar(model)
+        lineplot_widget = PlotWidget(selector, rescale_plot=True)
         axes = SingleAxesStrategy(
             lineplot_widget.figure, lambda figure: figure.subplots(1)
         )
@@ -101,7 +114,8 @@ class PlotWidgetFactory:
 
     @classmethod
     def _build_histogram_widget(cls, model: DataTypeModel) -> PlotWidget:
-        histogram_widget = PlotWidget(rescale_plot=True)
+        selector = cls._build_checkbox_sidebar(model)
+        histogram_widget = PlotWidget(selector, rescale_plot=True)
         axes = SingleAxesStrategy(
             histogram_widget.figure, lambda figure: figure.subplots(1)
         )
@@ -125,7 +139,8 @@ class PlotWidgetFactory:
 
     @classmethod
     def _build_timeofday_widget(cls, model: DataTypeModel) -> PlotWidget:
-        timeofday_widget = PlotWidget(rescale_plot=False)
+        selector = cls._build_radiobutton_sidebar(model)
+        timeofday_widget = PlotWidget(selector, rescale_plot=False)
         axes = SingleAxesStrategy(
             timeofday_widget.figure,
             lambda figure: figure.subplots(1, subplot_kw={"projection": "polar"}),
@@ -145,3 +160,19 @@ class PlotWidgetFactory:
             NavBarBuilder().navigation_toolbar().freeze_plot()
         )
         return timeofday_widget
+
+    @classmethod
+    def _build_checkbox_sidebar(cls, model: DataTypeModel) -> SideBar:
+        return cls._build_sidebar(model, QtWidgets.QCheckBox)
+
+    @classmethod
+    def _build_radiobutton_sidebar(cls, model: DataTypeModel) -> SideBar:
+        return cls._build_sidebar(model, QtWidgets.QRadioButton)
+
+    @classmethod
+    def _build_sidebar(
+        cls,
+        model: DataTypeModel,
+        button_type: SideBarButtonType,
+    ) -> SideBar:
+        return SideBar(model, button_type)

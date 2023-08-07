@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import partial
-from typing import Self
+from typing import Callable, Self
 
 from datamodels import DataTypeModel
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -13,18 +13,26 @@ class TreeItem:
     text: str
 
 
+SideBarButtonType = type[QtWidgets.QRadioButton] | type[QtWidgets.QCheckBox]
+
+
 class SideBar(QtWidgets.QTreeView):
-    button_toggled = QtCore.Signal(str, bool)
+    data_toggled = QtCore.Signal(str, bool)
 
     def __init__(
-        self, datatype_model: DataTypeModel, parent: QtWidgets.QWidget | None = None
+        self,
+        datatype_model: DataTypeModel,
+        button_type: SideBarButtonType,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent=parent)
         self.datatype_model = datatype_model
         self.tree_root = self.make_tree()
         treeViewModel = TreeModel(self.tree_root)
         self.setModel(treeViewModel)
-        self._button_widgets = []
+        self.button_type = button_type
+        self._button_widgets: list[QtWidgets.QWidget] = []
+        self._callbacks: list[partial[None]] = []
         self.add_buttons(treeViewModel.invisibleRootItem())
 
     def make_tree(self):
@@ -41,7 +49,7 @@ class SideBar(QtWidgets.QTreeView):
         return tree_root
 
     def button_toggled_fn(self, label: str, state: bool):
-        self.button_toggled.emit(label, state)
+        self.data_toggled.emit(label, state)
 
     def add_buttons(self, item: QtGui.QStandardItem):
         if item.hasChildren():
@@ -49,28 +57,24 @@ class SideBar(QtWidgets.QTreeView):
                 self.add_buttons(item.child(row, 0))
         else:
             label = item.data(QtGui.Qt.ItemDataRole.DisplayRole)
-            button = QtWidgets.QCheckBox()
+            assert isinstance(label, str)
+            button = self.button_type(label.upper())
             self._button_widgets.append(button)
             callback = partial(self.button_toggled_fn, label)
             button.toggled.connect(callback)
-            item.setData(f"    {label.upper()}", QtGui.Qt.ItemDataRole.DisplayRole)
+            self._callbacks.append(callback)
+            item.setData("", QtGui.Qt.ItemDataRole.DisplayRole)
             self.setIndexWidget(item.index(), button)
 
-    @QtCore.Slot()
-    def rowsInserted(
-        self,
-        parent: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
-        start: int,
-        end: int,
-    ) -> None:
-        return super().rowsInserted(parent, start, end)
+    def widget(self):
+        return self
 
 
 class TreeModel(QtGui.QStandardItemModel):
     def __init__(self, tree: TreeItem):
         super().__init__(None)
         self.setHorizontalHeaderLabels([tree.text])
-        self.items = []
+        self.items: list[QtGui.QStandardItem] = []
         for child in tree.children:
             self.appendRow(self.build_tree(child))
 

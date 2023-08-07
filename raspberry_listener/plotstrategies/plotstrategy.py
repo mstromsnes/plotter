@@ -35,9 +35,6 @@ class PlotStrategy(ABC):
     def remove_artist(self):
         ...
 
-    @abstractmethod
-    def set_tick_formatter(self, ax: Axes):
-        ...
 
     @abstractmethod
     def set_colorsource(self, colors: Sequence[Color] | Colormap | Color):
