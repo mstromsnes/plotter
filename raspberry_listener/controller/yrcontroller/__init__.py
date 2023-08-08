@@ -1,0 +1,1 @@
+from .yrcontroller import register_yr_forecast_data
