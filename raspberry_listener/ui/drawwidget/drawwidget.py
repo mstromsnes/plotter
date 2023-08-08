@@ -14,10 +14,10 @@ class DrawWidget(QtWidgets.QWidget):
     def __init__(self, rescale_plot=True, parent=None):
         super().__init__(parent)
 
-        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.canvas_toolbar_layout = QtWidgets.QVBoxLayout()
         self.figure = Figure(figsize=(5, 3))
         self.canvas = FigureCanvas(self.figure)
-        self.main_layout.addWidget(self.canvas)
+        self.canvas_toolbar_layout.addWidget(self.canvas)
         self.plot_live = True
         self.rescale_plot = rescale_plot
 
@@ -32,4 +32,4 @@ class DrawWidget(QtWidgets.QWidget):
         self.figure.delaxes(ax)
 
     def add_navigation_bar(self, builder: LayoutBuilder):
-        self.main_layout.addLayout(builder.build(self))
+        self.canvas_toolbar_layout.addLayout(builder.build(self))
