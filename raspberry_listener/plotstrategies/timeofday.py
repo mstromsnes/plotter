@@ -29,7 +29,6 @@ class TimeOfDayPlot(PlotStrategy):
         except AttributeError:
             pass
         self.plot_clock(ax, counts, bins, **kwargs)
-        self.set_tick_formatter(ax)
 
     def plot_clock(
         self,

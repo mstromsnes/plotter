@@ -60,6 +60,7 @@ class PlotManager:
             plot = self.plot_strategy(self.model, label)
             plot.set_colorsource(self.color.get_color(label))
             ax = self.axes.from_label(label)
+            self.major_tick_formatter(ax)
             self.minor_tick_formatter(ax)
             self.plots.add_plot_strategy(label, ax, plot)
         self.plots.enable_plot(label)
