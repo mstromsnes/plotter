@@ -54,7 +54,6 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
         self.dataset_loader = dataset_loader
         self.dataset_manager = datatype_manager
         self.tab_widgets: dict[str, DataTypeTabWidget] = {}
-        self.tab_widget.currentChanged.connect(self.update_visible_plot)
         self.setCentralWidget(self.tab_widget)
         self._loaded_datasets: set[str] = set()
         self._data_loading_threads = {}
@@ -71,17 +70,18 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
             self._data_loading_threads[name] = thread
             if name in self.available_datasets:
                 self.available_datasets.remove(name)
-            self.create_datatype_tabs(self.dataset_manager)
+            self.create_missing_datatype_tabs(self.dataset_manager)
             self.dataset_picker.update_datasets(self.available_datasets)
 
-    def create_datatype_tabs(self, datatype_manager: DataTypeManager):
+    def create_missing_datatype_tabs(self, datatype_manager: DataTypeManager):
         types = datatype_manager.get_types()
         for type in types:
             data_model = datatype_manager.get_model(type)
             if data_model.has_data():
-                tab = DataTypeTabWidget(data_model)
-                self.tab_widgets[data_model.name()] = tab
-                self.tab_widget.addTab(tab, data_model.name())
+                if not data_model.name() in self.tab_widgets:
+                    tab = DataTypeTabWidget(data_model)
+                    self.tab_widgets[data_model.name()] = tab
+                    self.tab_widget.addTab(tab, data_model.name())
 
     def update_plots(self):
         for widget in self.tab_widgets.values():
