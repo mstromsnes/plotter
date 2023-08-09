@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Protocol, Sequence
 
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 from matplotlib.colors import Colormap, Normalize
 
-from .color import Color
+Color = tuple[float, float, float] | str
 
 
 class PlotNotReadyException(Exception):
@@ -36,14 +35,21 @@ class PlotStrategy(ABC):
         ...
 
 
+class SingleColorPlotStrategy(PlotStrategy):
     @abstractmethod
-    def set_colorsource(self, colors: Sequence[Color] | Colormap | Color):
+    def set_color(self, color: Color):
         ...
 
 
-class ColormapStrategy(Protocol):
+class ColormapPlotStrategy(PlotStrategy):
+    @abstractmethod
+    def set_colormap(self, colormap: Colormap) -> None:
+        ...
+
+    @abstractmethod
     def get_colormap(self) -> Colormap:
         ...
 
+    @abstractmethod
     def get_normalizer(self) -> Normalize:
         ...

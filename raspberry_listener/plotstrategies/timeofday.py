@@ -7,23 +7,19 @@ from matplotlib.container import BarContainer
 from matplotlib.projections.polar import PolarAxes
 from sources import DataNotReadyException
 
-from .plotstrategy import PlotNotReadyException, PlotStrategy
+from .plotstrategy import ColormapPlotStrategy, PlotNotReadyException
 
 
 class ColorNotSetException(Exception):
     ...
 
 
-class TimeOfDayPlot(PlotStrategy):
+class TimeOfDayPlot(ColormapPlotStrategy):
     @staticmethod
     def name():
         return "Time of Day"
 
-    def __call__(self, ax: PolarAxes, **kwargs):
-        try:
-            counts, bins = self.time_of_day_histogram()
-        except DataNotReadyException:
-            return
+        counts, bins = self.time_of_day_histogram()
         try:
             self.remove_artist()
         except AttributeError:
@@ -92,18 +88,14 @@ class TimeOfDayPlot(PlotStrategy):
                 count
             )  # The density integral is 1, not the sum. They are equal if the bin-width is 1, which is not the case here.
 
-        counts = [count_without_bins(group, bins) for _, group in grouping]
-        counts = np.array(counts)
+        counts = np.array([count_without_bins(group, bins) for _, group in grouping])
         return counts
 
     def remove_artist(self):
-        try:
-            [artist.remove() for artist in self.artists]
-            del self.artists
-        except AttributeError:
-            pass
+        [artist.remove() for artist in self.artists]
+        del self.artists
 
-    def set_colorsource(self, colors: Colormap):
+    def set_colormap(self, colors: Colormap):
         self.colormap = colors
 
     def get_colormap(self):

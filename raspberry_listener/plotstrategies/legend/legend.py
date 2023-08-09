@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Self, Sequence
 
 from matplotlib.axes import Axes
 from matplotlib.cm import ScalarMappable
@@ -8,9 +8,7 @@ from matplotlib.colors import Normalize
 from matplotlib.figure import Figure
 from matplotlib.legend import Legend
 
-from raspberry_listener.plotstrategies.plotstrategy import ColormapStrategy
-
-from ..plotstrategy import ColormapStrategy, PlotNotReadyException, PlotStrategy
+from ..plotstrategy import ColormapPlotStrategy, PlotNotReadyException, PlotStrategy
 
 
 class LegendStrategy(ABC):
@@ -19,7 +17,7 @@ class LegendStrategy(ABC):
         self,
         ax: Axes,
         fig: Figure,
-        strategies: Sequence[ColormapStrategy] | Sequence[PlotStrategy],
+        strategies: Sequence[PlotStrategy],
     ):
         ...
 
@@ -59,12 +57,15 @@ class ExternalLegend(LegendStrategy):
 
 
 class ColorbarLegend(LegendStrategy):
-    def __init__(self):
+    def __init__(self: Self):
         self.colorbar: Colorbar | None = None
 
-    def __call__(self, ax: Axes, fig: Figure, strategies: Sequence[ColormapStrategy]):
+    def __call__(self, ax: Axes, fig: Figure, strategies: Sequence[PlotStrategy]):
         # Only draw the colorbar for the last strategy. We don't really support multiple strategies.
         strategy = strategies[-1]
+        assert isinstance(
+            strategy, ColormapPlotStrategy
+        ), "Passed an incompatible PlotStrategy type"
         try:
             norm = strategy.get_normalizer()
             cmap = strategy.get_colormap()

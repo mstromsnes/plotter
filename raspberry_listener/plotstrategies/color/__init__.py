@@ -1,1 +1,1 @@
-from .color import Color, Colormap, ColorMapStrategy, ColorStrategy, CyclicColorStrategy
+from .color import Colormap, ColorMapStrategy, ColorStrategy, CyclicColorStrategy

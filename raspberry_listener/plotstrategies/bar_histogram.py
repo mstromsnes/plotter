@@ -2,13 +2,10 @@ import numpy as np
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 
-from raspberry_listener.datamodels import DataTypeModel
-
-from .color import Color
-from .plotstrategy import PlotStrategy
+from .plotstrategy import Color, SingleColorPlotStrategy
 
 
-class HistogramPlot(PlotStrategy):
+class HistogramPlot(SingleColorPlotStrategy):
     def __init__(self, model: DataTypeModel, key: tuple[str, str]):
         super().__init__(model, key)
         self.color = None
@@ -26,7 +23,10 @@ class HistogramPlot(PlotStrategy):
             barchart_data, bins=np.min((16, unique_values)), density=True
         )
         histogram = histogram / np.sum(histogram)
-        self.remove_artist()
+        try:
+            self.remove_artist()
+        except AttributeError:
+            pass
         width = bin_edges[1] - bin_edges[0]
         self.artist = ax.bar(
             bin_edges[:-1],
@@ -41,11 +41,8 @@ class HistogramPlot(PlotStrategy):
         )
 
     def remove_artist(self):
-        try:
-            self.artist.remove()
-            del self.artist
-        except AttributeError:
-            pass
+        self.artist.remove()
+        del self.artist
 
-    def set_colorsource(self, colors: Color):
-        self.color = colors
+    def set_color(self, color: Color):
+        self.color = color
