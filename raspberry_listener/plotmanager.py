@@ -55,8 +55,8 @@ class PlotManager:
             ax.relim()
             ax.autoscale()
 
-    def add_plotting_strategy(self, label: str):
-        if not self.plots.plot_already_constructed(label):
+    def add_plotting_strategy(self, key: tuple[str, str]):
+        if not self.plots.plot_already_constructed(key):
             plot = self.plot_strategy(self.model, key)
             plot.set_colorsource(self.color.get_color(label))
             ax = self.axes.from_key(key)

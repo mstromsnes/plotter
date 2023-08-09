@@ -1,23 +1,14 @@
-from collections import defaultdict
-from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Self
+from weakref import finalize
 
 from datamodels import DataTypeModel
 from PySide6 import QtCore, QtGui, QtWidgets
-
-
-@dataclass
-class TreeItem:
-    children: list[Self]
-    text: str
-
 
 SideBarButtonType = type[QtWidgets.QRadioButton] | type[QtWidgets.QCheckBox]
 
 
 class SideBar(QtWidgets.QTreeView):
-    data_toggled = QtCore.Signal(str, bool)
+    data_toggled = QtCore.Signal(tuple, bool)
 
     def __init__(
         self,
@@ -27,66 +18,56 @@ class SideBar(QtWidgets.QTreeView):
     ):
         super().__init__(parent=parent)
         self.datatype_model = datatype_model
-        self.tree_root = self.make_tree()
-        treeViewModel = TreeModel(self.tree_root)
-        self.setModel(treeViewModel)
         self.button_type = button_type
-        self._button_widgets: list[QtWidgets.QWidget] = []
-        self._callbacks: list[partial[None]] = []
-        self.add_buttons(treeViewModel.invisibleRootItem())
+        self.tree_model = TreeModel(self.datatype_model)
+        self.setModel(self.tree_model)
+        self.tree_model.source_added.connect(self.add_source)
+        self.tree_model.build_complete_tree()
+        self.header().hide()
 
-    def make_tree(self):
-        data_set_names = self.datatype_model.get_dataset_names()
-        sources = defaultdict(list)
-        for name in data_set_names:
-            sources[self.datatype_model.get_source_name(name)].append(name)
-        source_nodes = []
-        for source_name, datasets in sources.items():
-            leaf_nodes = [TreeItem([], dataset_name) for dataset_name in datasets]
-            source_node = TreeItem(leaf_nodes, source_name)
-            source_nodes.append(source_node)
-        tree_root = TreeItem(source_nodes, "")
-        return tree_root
+    def button_toggled_fn(self, model_key: tuple[str, str], state: bool):
+        self.data_toggled.emit(model_key, state)
 
-    def button_toggled_fn(self, label: str, state: bool):
-        self.data_toggled.emit(label, state)
+    def add_source(self, source_item: QtGui.QStandardItem):
+        source_name = source_item.text()
+        if source_item.hasChildren():
+            for row in range(source_item.rowCount()):
+                self.add_button(source_item.child(row, 0), source_name)
 
-    def add_buttons(self, item: QtGui.QStandardItem):
-        if item.hasChildren():
-            for row in range(item.rowCount()):
-                self.add_buttons(item.child(row, 0))
-        else:
-            label = item.data(QtGui.Qt.ItemDataRole.DisplayRole)
-            assert isinstance(label, str)
-            button = self.button_type(label.upper())
-            self._button_widgets.append(button)
-            callback = partial(self.button_toggled_fn, label)
-            button.toggled.connect(callback)
-            self._callbacks.append(callback)
-            item.setData("", QtGui.Qt.ItemDataRole.DisplayRole)
-            self.setIndexWidget(item.index(), button)
+    def add_button(self, item: QtGui.QStandardItem, source_label: str):
+        label = item.text()
+        button = self.button_type(label.upper())
+        callback = partial(self.button_toggled_fn, (source_label, label))
+        button.toggled.connect(callback)
+        item.setText("")
+        self.setIndexWidget(item.index(), button)
 
     def widget(self):
         return self
 
 
 class TreeModel(QtGui.QStandardItemModel):
-    def __init__(self, tree: TreeItem):
+    source_added = QtCore.Signal(QtGui.QStandardItem)
+
+    def __init__(self, datatype_model: DataTypeModel):
         super().__init__(None)
-        self.setHorizontalHeaderLabels([tree.text])
-        self.items: list[QtGui.QStandardItem] = []
-        for child in tree.children:
-            self.appendRow(self.build_tree(child))
+        self.datatype_model = datatype_model
+        self.datatype_model.register_observer(self.add_source)
+        self._finalizer = finalize(
+            self, self.datatype_model.remove_observer, self.add_source
+        )
+        self.setHorizontalHeaderLabels([""])
 
-    def build_tree(self, tree: TreeItem):
-        tree_item = self.fill_item(tree)
-        for child in tree.children:
-            tree_item.appendRow(self.build_tree(child))
-        self.items.append(tree_item)
-        return tree_item
+    def build_complete_tree(self):
+        for source in self.datatype_model.get_source_names():
+            self.add_source(source)
 
-    def fill_item(self, item: TreeItem) -> QtGui.QStandardItem:
-        text = f"{item.text}" if item.text is not None else "N/A"
-        tree_item = QtGui.QStandardItem()
-        tree_item.setText(text)
-        return tree_item
+    def add_source(self, source_name: str) -> None:
+        dataset_names = self.datatype_model.get_data_name_from_source(source_name)
+        source_item = QtGui.QStandardItem(source_name)
+        for name in dataset_names:
+            data_item = QtGui.QStandardItem(name)
+            source_item.appendRow(data_item)
+        root_item = self.invisibleRootItem()
+        root_item.appendRow(source_item)
+        self.source_added.emit(source_item)
