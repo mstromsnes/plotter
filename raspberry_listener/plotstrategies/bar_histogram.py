@@ -2,13 +2,10 @@ import numpy as np
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 
-from raspberry_listener.datamodels import DataTypeModel
-
-from .color import Color
-from .plotstrategy import PlotStrategy
+from .plotstrategy import Color, SingleColorPlotStrategy
 
 
-class HistogramPlot(PlotStrategy):
+class HistogramPlot(SingleColorPlotStrategy):
     def __init__(self, model: DataTypeModel, key: tuple[str, str]):
         super().__init__(model, key)
         self.color = None
@@ -47,5 +44,5 @@ class HistogramPlot(PlotStrategy):
         except AttributeError:
             pass
 
-    def set_colorsource(self, colors: Color):
-        self.color = colors
+    def set_color(self, color: Color):
+        self.color = color

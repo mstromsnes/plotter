@@ -1,13 +1,11 @@
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
-from sources import DataNotReadyException
 
-from .color import Color
-from .plotstrategy import PlotStrategy
+from .plotstrategy import Color, SingleColorPlotStrategy
 
 
-class LinePlot(PlotStrategy):
+class LinePlot(SingleColorPlotStrategy):
     def __init__(
         self,
         model: DataTypeModel,
@@ -46,5 +44,5 @@ class LinePlot(PlotStrategy):
         except AttributeError:
             pass
 
-    def set_colorsource(self, colors: Color):
-        self.color = colors
+    def set_color(self, color: Color):
+        self.color = color

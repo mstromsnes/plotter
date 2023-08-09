@@ -7,14 +7,14 @@ from matplotlib.container import BarContainer
 from matplotlib.projections.polar import PolarAxes
 from sources import DataNotReadyException
 
-from .plotstrategy import PlotNotReadyException, PlotStrategy
+from .plotstrategy import ColormapPlotStrategy, PlotNotReadyException
 
 
 class ColorNotSetException(Exception):
     ...
 
 
-class TimeOfDayPlot(PlotStrategy):
+class TimeOfDayPlot(ColormapPlotStrategy):
     @staticmethod
     def name():
         return "Time of Day"
@@ -103,7 +103,7 @@ class TimeOfDayPlot(PlotStrategy):
         except AttributeError:
             pass
 
-    def set_colorsource(self, colors: Colormap):
+    def set_colormap(self, colors: Colormap):
         self.colormap = colors
 
     def get_colormap(self):
