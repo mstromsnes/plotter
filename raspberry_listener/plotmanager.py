@@ -58,7 +58,7 @@ class PlotManager:
     def add_plotting_strategy(self, key: tuple[str, str]):
         if not self.plots.plot_already_constructed(key):
             plot = self.plot_strategy(self.model, key)
-            plot.set_colorsource(self.color.get_color(label))
+            plot.set_colorsource(self.color.get_color(key))
             ax = self.axes.from_key(key)
             self.major_tick_formatter(ax)
             self.minor_tick_formatter(ax)
