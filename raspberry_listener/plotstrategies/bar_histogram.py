@@ -1,7 +1,6 @@
 import numpy as np
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
-from sources import DataNotReadyException
 
 from raspberry_listener.datamodels import DataTypeModel
 
@@ -10,8 +9,8 @@ from .plotstrategy import PlotStrategy
 
 
 class HistogramPlot(PlotStrategy):
-    def __init__(self, model: DataTypeModel, label: str):
-        super().__init__(model, label)
+    def __init__(self, model: DataTypeModel, key: tuple[str, str]):
+        super().__init__(model, key)
         self.color = None
 
     @staticmethod
@@ -19,12 +18,9 @@ class HistogramPlot(PlotStrategy):
         return "Histogram"
 
     def __call__(self, ax: Axes, **kwargs):
-        try:
-            time_series, barchart_data = self.model.get_data(
-                self.label
-            )  # We don't care about the time_series
-        except DataNotReadyException:
-            return
+        time_series, barchart_data = self.model.get_data(
+            self.key
+        )  # We don't care about the time_series
         unique_values = len(np.unique(barchart_data))
         histogram, bin_edges = np.histogram(
             barchart_data, bins=np.min((16, unique_values)), density=True
@@ -37,7 +33,7 @@ class HistogramPlot(PlotStrategy):
             histogram,
             width=width,
             align="center",
-            label=self.label,
+            label=f"{self.key[1]}, {self.key[0]}",
             log=True,
             alpha=0.8,
             color=self.color,

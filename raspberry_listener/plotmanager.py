@@ -55,20 +55,20 @@ class PlotManager:
             ax.relim()
             ax.autoscale()
 
-    def add_plotting_strategy(self, label: str):
-        if not self.plots.plot_already_constructed(label):
-            plot = self.plot_strategy(self.model, label)
-            plot.set_colorsource(self.color.get_color(label))
-            ax = self.axes.from_label(label)
+    def add_plotting_strategy(self, key: tuple[str, str]):
+        if not self.plots.plot_already_constructed(key):
+            plot = self.plot_strategy(self.model, key)
+            plot.set_colorsource(self.color.get_color(key))
+            ax = self.axes.from_key(key)
             self.major_tick_formatter(ax)
             self.minor_tick_formatter(ax)
-            self.plots.add_plot_strategy(label, ax, plot)
-        self.plots.enable_plot(label)
+            self.plots.add_plot_strategy(key, ax, plot)
+        self.plots.enable_plot(key)
         self.plot()
 
-    def remove_plotting_strategy(self, label: str):
-        self.plots.remove_plot_strategy(label)
-        ax = self.axes.from_label(label)
+    def remove_plotting_strategy(self, key: tuple[str, str]):
+        self.plots.remove_plot_strategy(key)
+        ax = self.axes.from_key(key)
         if not self.plots.axes_has_strategies(ax):
             self.legend.remove_legend()
         self.plot()

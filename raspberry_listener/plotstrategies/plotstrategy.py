@@ -16,10 +16,10 @@ class PlotStrategy(ABC):
     def __init__(
         self,
         model: DataTypeModel,
-        label: str,
+        key: tuple[str, str],
     ):
         self.model = model
-        self.label = label
+        self.key = key
 
     @abstractmethod
     def __call__(self, ax: Axes, **kwargs):

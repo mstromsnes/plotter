@@ -6,29 +6,29 @@ from ..plotstrategy import PlotStrategy
 class PlotContainer:
     def __init__(self) -> None:
         self.a_plots: dict[Axes, list[PlotStrategy]] = {}
-        self.l_plots: dict[str, PlotStrategy] = {}
+        self.k_plots: dict[tuple[str, str], PlotStrategy] = {}
         self.enabled: dict[PlotStrategy, bool] = {}
 
-    def add_plot_strategy(self, label: str, ax: Axes, plot: PlotStrategy):
+    def add_plot_strategy(self, key: tuple[str, str], ax: Axes, plot: PlotStrategy):
         try:
             if plot not in self.a_plots[ax]:
                 self.a_plots[ax].append(plot)
         except KeyError:
             self.a_plots[ax] = [plot]
-        self.l_plots[label] = plot
+        self.k_plots[key] = plot
 
-    def enable_plot(self, label: str):
-        self.enabled[self.l_plots[label]] = True
+    def enable_plot(self, key: tuple[str, str]):
+        self.enabled[self.k_plots[key]] = True
 
     def plot_already_constructed(self, label):
-        return label in self.l_plots.keys()
+        return label in self.k_plots.keys()
 
-    def remove_plot_strategy(self, label: str):
+    def remove_plot_strategy(self, key: tuple[str, str]):
         try:
-            plot = self.l_plots[label]
+            plot = self.k_plots[key]
             plot.remove_artist()
-            self.enabled[self.l_plots[label]] = False
-        except KeyError:
+            self.enabled[self.k_plots[key]] = False
+        except (KeyError, AttributeError):
             pass
 
     def from_axes(self, ax: Axes, enabled: bool | None = True) -> list[PlotStrategy]:
@@ -49,11 +49,13 @@ class PlotContainer:
             return plots
         return [plot for plot in plots if self.enabled[plot]]
 
-    def from_label(self, label: str, enabled: bool | None = True) -> PlotStrategy:
+    def from_key(
+        self, key: tuple[str, str], enabled: bool | None = True
+    ) -> PlotStrategy:
         """_summary_
 
         Args:
-            label (str): Identifier of the PlotStrategy
+            key (tuple[str,str]): Identifier of the PlotStrategy. It's a tuple of the (source_name, dataset_name)
             enabled (bool | None, optional): Returns depending on whether the strategy is enabled or not. If None return anyway. Defaults to True.
 
         Raises:
@@ -62,7 +64,7 @@ class PlotContainer:
         Returns:
             PlotStrategy: _description_
         """
-        plot = self.l_plots[label]
+        plot = self.k_plots[key]
         if enabled is None:
             return plot
         if self.enabled[plot] == enabled:
