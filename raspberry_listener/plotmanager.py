@@ -24,7 +24,7 @@ class PlotManager:
             if self.widget.plot_live and self.widget.isVisible():
                 func(self, *args, **kwargs)
                 if self.widget.rescale_plot:
-                    self._rescale()
+                    self.rescale()
                 self.widget.canvas.draw_idle()
 
         return wrapper
@@ -49,19 +49,29 @@ class PlotManager:
         self.plots = PlotContainer()
         self.major_tick_formatter = major_tick_formatter
         self.minor_tick_formatter = minor_tick_formatter
+        self.construct_plot_strategies()
 
-    def _rescale(self):
+    def construct_plot_strategies(self):
+        datasets = self.model.get_dataset_names()
+        for dataset in datasets:
+            self.construct_plot_strategy(dataset)
+
+    def construct_plot_strategy(self, key: tuple[str, str]):
+        ax = self.axes.from_key(key)
+        plot = self.plot_strategy(self.model, key)
+        self.color.apply(plot, key)
+        self.major_tick_formatter(ax)
+        self.minor_tick_formatter(ax)
+        return ax, plot
+
+    def rescale(self):
         for ax in self.axes:
             ax.relim()
             ax.autoscale()
 
     def add_plotting_strategy(self, key: tuple[str, str]):
         if not self.plots.plot_already_constructed(key):
-            plot = self.plot_strategy(self.model, key)
-            plot.set_colorsource(self.color.get_color(key))
-            ax = self.axes.from_key(key)
-            self.major_tick_formatter(ax)
-            self.minor_tick_formatter(ax)
+            ax, plot = self.construct_plot_strategy(key)
             self.plots.add_plot_strategy(key, ax, plot)
         self.plots.enable_plot(key)
         self.plot()
