@@ -11,9 +11,9 @@ class LinePlot(PlotStrategy):
     def __init__(
         self,
         model: DataTypeModel,
-        label: str,
+        key: tuple[str, str],
     ):
-        super().__init__(model, label)
+        super().__init__(model, key)
         self.color = None
 
     @staticmethod
@@ -21,10 +21,7 @@ class LinePlot(PlotStrategy):
         return "Line"
 
     def __call__(self, ax: Axes, **kwargs):
-        try:
-            x, y = self.model.get_data(self.label)
-        except DataNotReadyException:
-            return
+        x, y = self.model.get_data(self.key)
         try:
             self.artist.set_xdata(x)
             self.artist.set_ydata(y)
@@ -33,7 +30,7 @@ class LinePlot(PlotStrategy):
             self._artists = ax.plot(
                 x,
                 y,
-                label=self.label,
+                label=f"{self.key[1]}, {self.key[0]}",
                 color=self.color,
                 **kwargs,
             )

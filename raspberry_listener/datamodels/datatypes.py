@@ -33,11 +33,11 @@ class DataTypeModel(ABC):
         ...
 
     @abstractmethod
-    def get_source_name(self, name: str) -> str:
+    def get_data(self, key: tuple[str, str]) -> Any:
         ...
 
     @abstractmethod
-    def get_data(self, name: str) -> Any:
+    def get_dataset_names(self) -> set[tuple[str, str]]:
         ...
 
     @abstractmethod

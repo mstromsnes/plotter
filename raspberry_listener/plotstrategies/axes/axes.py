@@ -15,7 +15,7 @@ class AxesStrategy(ABC):
         ...
 
     @abstractmethod
-    def from_label(self, label: str) -> Axes:
+    def from_key(self, key: tuple[str, str]) -> Axes:
         ...
 
     def __iter__(self) -> Iterator[Axes]:
@@ -36,5 +36,5 @@ class SingleAxesStrategy(AxesStrategy):
     def axes(self):
         return [self.ax]
 
-    def from_label(self, label: str):
+    def from_key(self, key: tuple[str, str]):
         return self.ax
