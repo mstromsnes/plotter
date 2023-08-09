@@ -38,11 +38,8 @@ class LinePlot(SingleColorPlotStrategy):
         return self._artists[0]
 
     def remove_artist(self):
-        try:
-            self.artist.remove()
-            del self._artists
-        except AttributeError:
-            pass
+        self.artist.remove()
+        del self._artists
 
     def set_color(self, color: Color):
         self.color = color

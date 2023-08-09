@@ -23,7 +23,10 @@ class HistogramPlot(SingleColorPlotStrategy):
             barchart_data, bins=np.min((16, unique_values)), density=True
         )
         histogram = histogram / np.sum(histogram)
-        self.remove_artist()
+        try:
+            self.remove_artist()
+        except AttributeError:
+            pass
         width = bin_edges[1] - bin_edges[0]
         self.artist = ax.bar(
             bin_edges[:-1],
@@ -38,11 +41,8 @@ class HistogramPlot(SingleColorPlotStrategy):
         )
 
     def remove_artist(self):
-        try:
-            self.artist.remove()
-            del self.artist
-        except AttributeError:
-            pass
+        self.artist.remove()
+        del self.artist
 
     def set_color(self, color: Color):
         self.color = color

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Self
 
 from numpy import datetime64, floating
 from numpy.typing import NDArray
@@ -9,7 +10,7 @@ OneDimensionalTimeSeries = tuple[NDArray[datetime64], NDArray[floating]]
 
 
 class OneDimensionalTimeSeriesModel(DataTypeModel):
-    def __init__(self):
+    def __init__(self: Self):
         super().__init__()
         self._datalines: dict[tuple[str, str], DataSet_Fn] = {}
         self._source_name_to_data_name: dict[str, list[str]] = defaultdict(list)

@@ -19,11 +19,7 @@ class TimeOfDayPlot(ColormapPlotStrategy):
     def name():
         return "Time of Day"
 
-    def __call__(self, ax: PolarAxes, **kwargs):
-        try:
-            counts, bins = self.time_of_day_histogram()
-        except DataNotReadyException:
-            return
+        counts, bins = self.time_of_day_histogram()
         try:
             self.remove_artist()
         except AttributeError:
@@ -92,16 +88,12 @@ class TimeOfDayPlot(ColormapPlotStrategy):
                 count
             )  # The density integral is 1, not the sum. They are equal if the bin-width is 1, which is not the case here.
 
-        counts = [count_without_bins(group, bins) for _, group in grouping]
-        counts = np.array(counts)
+        counts = np.array([count_without_bins(group, bins) for _, group in grouping])
         return counts
 
     def remove_artist(self):
-        try:
-            [artist.remove() for artist in self.artists]
-            del self.artists
-        except AttributeError:
-            pass
+        [artist.remove() for artist in self.artists]
+        del self.artists
 
     def set_colormap(self, colors: Colormap):
         self.colormap = colors

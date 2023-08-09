@@ -21,7 +21,7 @@ Observer = Callable[[str], None]
 class DataTypeModel(ABC):
     _unit: Unit
 
-    def __init__(self):
+    def __init__(self: Self):
         self._has_data = False
         self._observers: set[Observer] = set()
 
