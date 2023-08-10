@@ -1,1 +1,1 @@
-from .yr import YrForecast
+from .yrforecast import YrForecast
