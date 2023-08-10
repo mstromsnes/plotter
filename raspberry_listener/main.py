@@ -1,16 +1,20 @@
 import logging
 
-from controller import register_raspberry_sensor_data, register_yr_forecast_data
+from controller import (
+    register_raspberry_sensor_data,
+    register_yr_forecast_data,
+    register_yr_historic_data,
+)
 from datamodels import DataTypeManager, HumidityModel, TemperatureModel
 from datathread import DataThreadController
 from PySide6 import QtCore, QtWidgets
-from sources import DataLoader, SensorDataFrameHandler, YrForecast
+from sources import DataLoader, SensorDataFrameHandler, YrForecast, YrHistoric
 from ui.dataplotterwindow import DataPlotterWindow
 
 
 def main():
     app = QtWidgets.QApplication()
-    available_datasets = ["Pi-sensors", "Yr"]
+    available_datasets = ["Pi-sensors", "Yr Forecast", "Yr Historic"]
 
     datatype_manager = DataTypeManager()
     temperature_model = TemperatureModel()
@@ -31,9 +35,14 @@ def main():
                 register_raspberry_sensor_data(
                     handler, temperature_model, humidity_model, name
                 )
-            case "Yr":
+            case "Yr Forecast":
                 handler = YrForecast()
                 register_yr_forecast_data(
+                    handler, temperature_model, humidity_model, name
+                )
+            case "Yr Historic":
+                handler = YrHistoric()
+                register_yr_historic_data(
                     handler, temperature_model, humidity_model, name
                 )
             case _:

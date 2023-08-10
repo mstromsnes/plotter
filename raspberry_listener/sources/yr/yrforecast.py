@@ -5,7 +5,7 @@ from pprint import pprint
 import numpy as np
 from sources.dataloader import DataLoader
 
-from .apiclient import Location, Variant, download_location
+from .apiclient import Location, Variant, download_forecast_from_location
 
 ARNA = Location(60.42203, 5.46824, 60)
 OSLO = Location(59.91273, 10.74609, 5)
@@ -13,7 +13,7 @@ OSLO = Location(59.91273, 10.74609, 5)
 
 class YrForecast(DataLoader):
     def initial_load(self) -> None:
-        self.data = download_location(ARNA, Variant.Compact)
+        self.data = download_forecast_from_location(ARNA, Variant.Compact)
         self.timeseries = self.data["properties"]["timeseries"]
         now = np.datetime64(datetime.now() + timedelta(days=2))
         length = self.count_timestamps_until_provided(now, self.timeseries)
