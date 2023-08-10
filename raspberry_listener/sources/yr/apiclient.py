@@ -17,10 +17,8 @@ class Variant(Enum):
     Classic = "classic"  # XML
 
 
-def download_location(location: Location, variant: Variant):
-    query = make_query_string(**location._asdict())
-    print(URL + variant.value + query)
-    response = httpx.get(URL + variant.value + query)
+def download_forecast_from_location(location: Location, variant: Variant):
+    response = httpx.get(FORECAST_URL + variant.value, params=location._asdict())
 
     if response.status_code != 200:
         raise HTTPException(response.status_code, response)
