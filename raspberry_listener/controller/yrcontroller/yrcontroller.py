@@ -1,5 +1,5 @@
 from datamodels import HumidityModel, TemperatureModel
-from sources import YrForecast, YrHistoric
+from sources import YrForecast, YrHistoric, get_settings
 
 
 def register_yr_forecast_data(
@@ -8,16 +8,22 @@ def register_yr_forecast_data(
     humidity_model: HumidityModel,
     name: str,
 ):
-    temperature_model.register_data(
-        "Arna",
-        lambda: (yr_forecast.time, yr_forecast.temperature),
-        name,
-    )
-    humidity_model.register_data(
-        "Arna",
-        lambda: (yr_forecast.time, yr_forecast.humidity),
-        name,
-    )
+    def get_data(location: str, variable: str):
+        pass
+
+    settings = get_settings()
+    locations: dict[str, dict[str, float]] = settings["yr"]["locations"]
+    for location in locations.keys():
+        temperature_model.register_data(
+            location,
+            partial(get_data, location, "temperature"),
+            name,
+        )
+        humidity_model.register_data(
+            location,
+            partial(get_data, location, "humidity"),
+            name,
+        )
 
 
 def register_yr_historic_data(
@@ -26,13 +32,19 @@ def register_yr_historic_data(
     humidity_model: HumidityModel,
     name: str,
 ):
-    temperature_model.register_data(
-        "Arna",
-        lambda: (yr_historic.time, yr_historic.temperature),
-        name,
-    )
-    humidity_model.register_data(
-        "Arna",
-        lambda: (yr_historic.time, yr_historic.humidity),
-        name,
-    )
+    def get_data(location: str, variable: str):
+        pass
+
+    settings = get_settings()
+    locations: dict[str, str] = settings["frost"]["stations"]
+    for location in locations.keys():
+        temperature_model.register_data(
+            location,
+            partial(get_data, location, "temperature"),
+            name,
+        )
+        humidity_model.register_data(
+            location,
+            partial(get_data, location, "humidity"),
+            name,
+        )

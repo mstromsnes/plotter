@@ -1,0 +1,9 @@
+[frost.stations]
+"INDRE ARNA" = "SN50830"
+"TROMSØ" = "SN90450"
+OSLO = "SN18700"
+"ÅSANE" = "SN50810"
+
+[yr.locations]
+ARNA = { lat = 60.42203, lon = 5.46824, altitude = 60 }
+OSLO = { lat = 59.91273, lon = 10.74609, altitude = 5 }

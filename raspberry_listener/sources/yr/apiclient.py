@@ -1,7 +1,9 @@
 import logging
+import tomllib
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 
 import httpx
 from attrs import define
@@ -13,7 +15,16 @@ Location = namedtuple("Location", ["lat", "lon", "altitude"])
 
 
 def client_id() -> str:
-    pass
+    def get_client_id(path: Path):
+        with open(path, "rb") as file:
+            settings = tomllib.load(file)
+            return settings["frost"]["client_id"]
+
+    try:
+        return get_client_id(Path("raspberry_listener/frost_secrets.toml"))
+    except OSError:
+        return get_client_id(Path("frost_secrets.toml"))
+
 
 class Variant(Enum):
     Complete = "complete"  # JSON forecast with all values
