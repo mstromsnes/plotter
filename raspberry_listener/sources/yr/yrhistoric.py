@@ -1,61 +1,73 @@
+import asyncio
 from datetime import datetime
 
-import numpy as np
-from scipy.ndimage.filters import median_filter
+import pandas as pd
+from attrs import define, field
 from sources.dataloader import DataLoader, DataNotReadyException
 
-from .apiclient import download_historic_from_station_between_interval
+from ..settings import get_settings
+from .apiclient import AsyncAPIClient
 
-INDRE_ARNA = "SN50830"
 
-
+@define
 class YrHistoric(DataLoader):
+    _dataframe_mapping: dict[str, pd.DataFrame] = field(factory=dict)
+    _client = AsyncAPIClient()
+
+    def get_station_id_mapping(self):
+        settings = get_settings()
+        station_id_mapping: dict[str, str] = settings["frost"]["stations"]
+        return station_id_mapping
+
     def initial_load(self) -> None:
-        self.response = download_historic_from_station_between_interval(
-            INDRE_ARNA, datetime(2023, 1, 1), datetime.now(), "P1D"
-        )
-        self.data = self.response["data"]
-        length = len(self.data)
-        self._time = np.zeros(length, dtype="datetime64[s]")
-        self._temperature = np.zeros(length, dtype=np.float32)
-        self._humidity = np.zeros(length, dtype=np.float32)
-        for i, entry in enumerate(self.data):
-            observerations = entry["observations"]
-            for obs in observerations:
-                match obs["elementId"]:
-                    case "air_temperature":
-                        self._temperature[i] = obs["value"]
-                    case "relative_humidity":
-                        self._humidity[i] = obs["value"]
-            time = np.datetime64(entry["referenceTime"])
-            self._time[i] = time
-        self.filter_data()
-        print("Data ready")
+        station_id_mapping = self.get_station_id_mapping()
 
-    @property
-    def time(self):
+        async def get_data_from_station_id(station_id: str):
+            response = (
+                await self._client.download_historic_from_station_between_interval(
+                    station_id,
+                    datetime(2023, 1, 1),
+                    datetime.now(),
+                )
+            )
+            return response["data"]
+
+        def create_frame(data: dict, location_name):
+            full_frame = pd.DataFrame.from_records(data)
+            full_frame = full_frame.explode("observations").reset_index(drop=True)
+            observations_frame = pd.DataFrame.from_records(
+                full_frame.observations.to_numpy()
+            )
+            full_frame = full_frame.join(observations_frame).drop(
+                "observations", axis=1
+            )
+            full_frame["location"] = location_name
+            return full_frame
+
+        async def collect_frame(station_id: str, location_name: str):
+            data = await get_data_from_station_id(station_id)
+
+            self._dataframe_mapping[location_name] = create_frame(data, location_name)
+
+        async def create_dataframes():
+            await asyncio.gather(
+                *[
+                    collect_frame(station_id, location_name)
+                    for location_name, station_id in station_id_mapping.items()
+                ]
+            )
+
         try:
-            return self._time
-        except AttributeError:
-            raise DataNotReadyException
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+        loop.run_until_complete(create_dataframes())
 
-    @property
-    def temperature(self):
+    def data_for_location(self, location: str):
         try:
-            return self._temperature
-        except AttributeError:
+            return self._dataframe_mapping[location]
+        except (AttributeError, KeyError):
             raise DataNotReadyException
-
-    @property
-    def humidity(self):
-        try:
-            return self._humidity
-        except AttributeError:
-            raise DataNotReadyException
-
-    def filter_data(self):
-        self._humidity = median_filter(self.humidity, 5)
-        self._temperature = median_filter(self.temperature, 5)
 
     def update_data(self) -> None:
         pass

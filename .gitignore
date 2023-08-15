@@ -4,3 +4,4 @@
 *.npy
 *.parquet
 **/.hypothesis/**
+frost_secrets.toml

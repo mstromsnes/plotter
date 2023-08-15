@@ -1,14 +1,29 @@
 import logging
+import tomllib
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 
 import httpx
+from attrs import define
 from fastapi import HTTPException
 
 FORECAST_URL = "https://api.met.no/weatherapi/locationforecast/2.0/"
 HISTORIC_URL = "https://frost.met.no/observations/v0.jsonld"
 Location = namedtuple("Location", ["lat", "lon", "altitude"])
+
+
+def client_id() -> str:
+    def get_client_id(path: Path):
+        with open(path, "rb") as file:
+            settings = tomllib.load(file)
+            return settings["frost"]["client_id"]
+
+    try:
+        return get_client_id(Path("raspberry_listener/frost_secrets.toml"))
+    except OSError:
+        return get_client_id(Path("frost_secrets.toml"))
 
 
 class Variant(Enum):
@@ -17,52 +32,92 @@ class Variant(Enum):
     Classic = "classic"  # XML
 
 
-def download_forecast_from_location(location: Location, variant: Variant):
-    response = httpx.get(FORECAST_URL + variant.value, params=location._asdict())
+@define
+class APIClient:
+    client: httpx.Client = httpx.Client()
 
-    if response.status_code != 200:
-        raise HTTPException(response.status_code, response)
+    def download_forecast_from_location(self, location: Location, variant: Variant):
+        response = self.client.get(
+            FORECAST_URL + variant.value, params=location._asdict()
+        )
 
-    log_response(response)
+        if response.status_code != 200:
+            raise HTTPException(response.status_code, response)
 
-    return response.json()
+        log_response(response)
+
+        return response.json()
+
+    def download_historic_from_station_between_interval(
+        self, station: str, early: datetime, late: datetime
+    ):
+        interval_str = convert_interval_to_frost_compliant_str(early, late)
+        query_parameters = {
+            "sources": station,
+            "referencetime": interval_str,
+            "elements": "air_temperature,relative_humidity",
+        }
+        response = self.client.get(
+            HISTORIC_URL,
+            params=query_parameters,
+            auth=(client_id(), ""),
+            timeout=30,
+        )
+
+        if response.status_code != 200:
+            print(response.headers)
+            print(response.content)
+            raise HTTPException(response.status_code, response)
+
+        return response.json()
 
 
-def download_historic_from_station_between_interval(
-    station: str, early: datetime, late: datetime, period: str
-):
-    interval_str = convert_interval_to_frost_compliant_str(early, late, period)
-    query_parameters = {
-        "sources": station,
-        "referencetime": interval_str,
-        "elements": "air_temperature,relative_humidity",
-    }
-    response = httpx.get(
-        HISTORIC_URL, params=query_parameters, auth=(HISTORIC_CLIENT_ID, ""), timeout=30
-    )
+@define
+class AsyncAPIClient:
+    async_client: httpx.AsyncClient = httpx.AsyncClient()
 
-    if response.status_code != 200:
-        print(response.headers)
-        raise HTTPException(response.status_code, response)
+    async def download_forecast_from_location(
+        self, location: Location, variant: Variant
+    ):
+        response = await self.async_client.get(
+            FORECAST_URL + variant.value, params=location._asdict()
+        )
 
-    return response.json()
+        if response.status_code != 200:
+            raise HTTPException(response.status_code, response)
+
+        log_response(response)
+
+        return response.json()
+
+    async def download_historic_from_station_between_interval(
+        self, station: str, early: datetime, late: datetime
+    ):
+        interval_str = convert_interval_to_frost_compliant_str(early, late)
+        query_parameters = {
+            "sources": station,
+            "referencetime": interval_str,
+            "elements": "air_temperature,relative_humidity",
+        }
+        response = await self.async_client.get(
+            HISTORIC_URL,
+            params=query_parameters,
+            auth=(client_id(), ""),
+            timeout=30,
+        )
+
+        if response.status_code != 200:
+            print(response.headers)
+            print(response.content)
+            raise HTTPException(response.status_code, response)
+
+        return response.json()
 
 
-def convert_interval_to_frost_compliant_str(
-    early: datetime, late: datetime, period: str
-) -> str:
+def convert_interval_to_frost_compliant_str(early: datetime, late: datetime) -> str:
     early_str = early.isoformat(sep="T", timespec="seconds")
     late_str = late.isoformat(sep="T", timespec="seconds")
     return "/".join((early_str, late_str))
-
-
-def make_query_string(**kwargs):
-    if len(kwargs) == 0:
-        return ""
-    query = "?"
-    for key, value in kwargs.items():
-        query += f"{key}={round(value, 4)}&"  # yr developer guide says not to use more than 4 decimal places
-    return query[:-1]  # Cut off the last &
 
 
 def log_response(response: httpx.Response):
