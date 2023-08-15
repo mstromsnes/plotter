@@ -32,7 +32,7 @@ class YrHistoric(DataLoader):
             )
             return response["data"]
 
-        async def create_frame(data: dict, location_name):
+        def create_frame(data: dict, location_name):
             full_frame = pd.DataFrame.from_records(data)
             full_frame = full_frame.explode("observations").reset_index(drop=True)
             observations_frame = pd.DataFrame.from_records(
@@ -47,9 +47,7 @@ class YrHistoric(DataLoader):
         async def collect_frame(station_id: str, location_name: str):
             data = await get_data_from_station_id(station_id)
 
-            self._dataframe_mapping[location_name] = await create_frame(
-                data, location_name
-            )
+            self._dataframe_mapping[location_name] = create_frame(data, location_name)
 
         async def create_dataframes():
             await asyncio.gather(
@@ -59,7 +57,11 @@ class YrHistoric(DataLoader):
                 ]
             )
 
-        asyncio.run(create_dataframes())
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+        loop.run_until_complete(create_dataframes())
 
     def data_for_location(self, location: str):
         try:

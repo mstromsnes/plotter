@@ -50,9 +50,11 @@ class YrForecast(DataLoader):
                 ]
             )
 
-        asyncio.run(create_dataframes())
-
-
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+        loop.run_until_complete(create_dataframes())
 
     def data_for_location(self, location_name: str):
         try:
