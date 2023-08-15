@@ -1,57 +1,64 @@
-from collections import Counter, namedtuple
-from datetime import datetime, timedelta
-from pprint import pprint
+import asyncio
 
-import numpy as np
-from sources.dataloader import DataLoader
+import pandas as pd
+from attrs import define, field
+from sources.dataloader import DataLoader, DataNotReadyException
 
-from .apiclient import Location, Variant, download_forecast_from_location
-
-ARNA = Location(60.42203, 5.46824, 60)
-OSLO = Location(59.91273, 10.74609, 5)
+from ..settings import get_settings
+from .apiclient import AsyncAPIClient, Location, Variant
 
 
+@define
 class YrForecast(DataLoader):
+    _client: AsyncAPIClient = AsyncAPIClient()
+    _dataframe_mapping: dict[str, pd.DataFrame] = field(factory=dict)
+
+    def get_locations(self) -> dict[str, Location]:
+        settings = get_settings()
+        locations: dict[str, dict[str, float]] = settings["yr"]["locations"]
+        return {location: Location(**kwargs) for location, kwargs in locations.items()}
+
     def initial_load(self) -> None:
-        self.data = download_forecast_from_location(ARNA, Variant.Compact)
-        self.timeseries = self.data["properties"]["timeseries"]
-        now = np.datetime64(datetime.now() + timedelta(days=2))
-        length = self.count_timestamps_until_provided(now, self.timeseries)
-        self.time = np.zeros(length, dtype="datetime64[s]")
-        self.temperature = np.zeros(length, dtype=np.float16)
-        self.humidity = np.zeros(length, dtype=np.float16)
-        for i, entry in enumerate(self.timeseries):
-            if i > length - 1:
-                break
-            details = entry["data"]["instant"]["details"]
+        locations = self.get_locations()
 
-            time = np.datetime64(entry["time"])
-            temp = details["air_temperature"]
-            humidity = details["relative_humidity"]
+        async def get_forecast_for_location(location: Location):
+            return await self._client.download_forecast_from_location(
+                location, Variant.Compact
+            )
 
-            self.time[i] = time
-            self.temperature[i] = temp
-            self.humidity[i] = humidity
+        def load_forecast_into_dataframe(result: dict) -> pd.DataFrame:
+            forecast = result["properties"]["timeseries"]
+            frame = pd.DataFrame.from_records(forecast)
+            observations_frame = pd.DataFrame.from_records(frame.data)
+            instant_data = [
+                item["details"] for item in observations_frame["instant"].to_numpy()
+            ]
+            instant_frame = pd.DataFrame.from_records(instant_data)
+            frame["time"] = pd.to_datetime(frame["time"])
+            return frame.join(instant_frame).drop("data", axis=1)
 
-    def count_timestamps_until_provided(
-        self, latest_timestamp: np.datetime64, timeseries
-    ) -> int:
-        """Counts how many entries in the timeseries provided are before the given timestamp. This lets us cut off our dataset before the data-frequency dips below 1/hour
+        async def collect_frame(location: Location, location_name: str):
+            data = await get_forecast_for_location(location)
+            frame = load_forecast_into_dataframe(data)
+            self._dataframe_mapping[location_name] = frame
 
-        Args:
-            latest_timestamp (np.datetime64): _description_
-            timeseries (_type_): _description_
+        async def create_dataframes():
+            await asyncio.gather(
+                *[
+                    collect_frame(location, location_name)
+                    for location_name, location in locations.items()
+                ]
+            )
 
-        Returns:
-            int: count of timestamps
-        """
-        i = 0
-        for entry in timeseries:
-            if np.datetime64(entry["time"]) < latest_timestamp:
-                i += 1
-            else:
-                break
-        return i
+        asyncio.run(create_dataframes())
+
+
+
+    def data_for_location(self, location_name: str):
+        try:
+            return self._dataframe_mapping[location_name]
+        except (AttributeError, KeyError):
+            raise DataNotReadyException
 
     def update_data(self) -> None:
         pass

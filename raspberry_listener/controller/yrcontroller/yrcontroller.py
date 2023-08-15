@@ -1,10 +1,27 @@
+from collections.abc import Callable
 from functools import partial
-from typing import Callable
 
 import numpy as np
 from datamodels import HumidityModel, TemperatureModel
-from pandas import Series
+from pandas import Series, Timedelta
 from sources import YrForecast, YrHistoric, get_settings
+
+
+def time_resolution_indexer(time_series: Series, delta: Timedelta) -> Series:
+    """Generates a boolean indexer into the Series/Dataframe
+    based on the difference between timestamps in the
+    provided timeseries.
+
+    Args:
+        time_series (Series): The underlying timeseries used to create the boolean indexer on
+        delta (Timedelta): The indexer returns true for all differences less than or equal to this delta
+
+    Returns:
+        Series: A list of booleans useful for indexing a dataframe
+    """
+    difference = time_series.diff()
+    difference[0] = difference[1]
+    return difference <= delta
 
 
 def register_yr_forecast_data(
@@ -14,7 +31,27 @@ def register_yr_forecast_data(
     name: str,
 ):
     def get_data(location: str, variable: str):
-        pass
+        data = yr_forecast.data_for_location(location)
+
+        def extract_data(variable: str, indexer_fn: Callable[[Series], Series]):
+            indexer = indexer_fn(data["time"])
+            reduced_frame = data[["time", variable]].dropna()[indexer]
+            return (
+                reduced_frame["time"].to_numpy(),
+                reduced_frame[variable].to_numpy(),
+            )
+
+        # The forecast has a lot of data with 6 hour gaps.
+        # They look very out of place, and aren't informative
+        # without percentile error ranges, so we remove them
+        one_hour_resolution = partial(time_resolution_indexer, delta=Timedelta("1h"))
+        match variable:
+            case "temperature":
+                return extract_data("air_temperature", one_hour_resolution)
+            case "humidity":
+                return extract_data("relative_humidity", one_hour_resolution)
+            case _:
+                raise KeyError("Unsupported variable type")
 
     settings = get_settings()
     locations: dict[str, dict[str, float]] = settings["yr"]["locations"]
