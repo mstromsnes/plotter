@@ -15,12 +15,12 @@ class OneDimensionalTimeSeriesModel(DataTypeModel):
         self._datalines: dict[DataIdentifier, DataSet_Fn] = dict()
         self._source_name_to_data_name: dict[str, list[str]] = defaultdict(list)
 
-    def _register_data(self, dataset: DataIdentifier, dataset_fn: DataSet_Fn):
+    def register_data(self, dataset: DataIdentifier, dataset_fn: DataSet_Fn):
         if dataset in self._datalines:
             raise KeyError(f"{dataset.data} from {dataset.source} already registered")
         self._datalines[dataset] = dataset_fn
         self._source_name_to_data_name[dataset.source].append(dataset.data)
-        self._has_data = True
+        self.dataline_registered.emit(dataset)
 
     def get_data_name_from_source(self, source_name: str) -> list[str]:
         return self._source_name_to_data_name[source_name]

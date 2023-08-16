@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod
 from dataclasses import astuple, dataclass
 from typing import Any, Callable, Protocol, Self
+
+from PySide6 import QtCore
 
 
 @dataclass(frozen=True)
@@ -27,54 +28,36 @@ class Unit:
 Observer = Callable[[DataIdentifier], None]
 
 
-class DataTypeModel(ABC):
+class DataTypeModel(QtCore.QObject):
+    source_updated = QtCore.Signal(str)
+    dataline_registered = QtCore.Signal(DataIdentifier)
     _unit: Unit
 
     def __init__(self: Self):
-        self._has_data = False
-        self._observers: set[Observer] = set()
+        super().__init__(None)
 
-    def has_data(self):
-        return self._has_data
-
-    def register_observer(self, observer: Observer):
-        self._observers.add(observer)
-
-    def remove_observer(self, observer: Observer):
-        try:
-            self._observers.remove(observer)
-        except KeyError:
-            pass
-
-    @abstractmethod
     def name(self) -> str:
-        ...
+        raise NotImplementedError
 
-    # This is essentially a decorator that only decorates the private _register_data method.
+    @QtCore.Slot(str)
+    def forward_source_updated(self, source_name: str):
+        self.source_updated.emit(source_name)
+
     def register_data(self, dataset: DataIdentifier, dataset_fn: DataSet_Fn):
-        self._register_data(dataset, dataset_fn)
-        for obs in self._observers:
-            obs(dataset)
-
-    @abstractmethod
-    def _register_data(self, dataset: DataIdentifier, dataset_fn: DataSet_Fn):
+        raise NotImplementedError
         ...
 
-    @abstractmethod
     def get_data_name_from_source(self, source_name: str) -> list[str]:
-        ...
+        raise NotImplementedError
 
-    @abstractmethod
     def get_data(self, data_identifier: DataIdentifier) -> Any:
-        ...
+        raise NotImplementedError
 
-    @abstractmethod
     def get_data_identifiers(self) -> set[DataIdentifier]:
-        ...
+        raise NotImplementedError
 
-    @abstractmethod
     def get_source_names(self) -> set[str]:
-        ...
+        raise NotImplementedError
 
     @classmethod
     @property
