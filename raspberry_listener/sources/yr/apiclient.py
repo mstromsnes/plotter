@@ -78,7 +78,7 @@ class AsyncAPIClient:
 
     async def download_forecast_from_location(
         self, location: Location, variant: Variant
-    ):
+    ) -> dict:
         response = await self.async_client.get(
             FORECAST_URL + variant.value, params=location._asdict()
         )

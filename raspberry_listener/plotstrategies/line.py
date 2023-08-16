@@ -2,16 +2,12 @@ from datamodels import DataTypeModel
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from .plotstrategy import Color, SingleColorPlotStrategy
+from .plotstrategy import Color, DataIdentifier, SingleColorPlotStrategy
 
 
 class LinePlot(SingleColorPlotStrategy):
-    def __init__(
-        self,
-        model: DataTypeModel,
-        key: tuple[str, str],
-    ):
-        super().__init__(model, key)
+    def __init__(self, model: DataTypeModel, dataset: DataIdentifier):
+        super().__init__(model, dataset)
         self.color = None
 
     @staticmethod
@@ -19,7 +15,7 @@ class LinePlot(SingleColorPlotStrategy):
         return "Line"
 
     def __call__(self, ax: Axes, **kwargs):
-        x, y = self.model.get_data(self.key)
+        x, y = self.model.get_data(self.dataset)
         try:
             self.artist.set_xdata(x)
             self.artist.set_ydata(y)
@@ -28,7 +24,7 @@ class LinePlot(SingleColorPlotStrategy):
             self._artists = ax.plot(
                 x,
                 y,
-                label=f"{self.key[1]}, {self.key[0]}",
+                label=f"{self.dataset.data}, {self.dataset.source}",
                 color=self.color,
                 **kwargs,
             )

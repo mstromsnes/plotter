@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from datamodels import DataTypeModel
+from datamodels import DataIdentifier, DataTypeModel
 from matplotlib.axes import Axes
 from matplotlib.colors import Colormap, Normalize
 
@@ -12,13 +12,9 @@ class PlotNotReadyException(Exception):
 
 
 class PlotStrategy(ABC):
-    def __init__(
-        self,
-        model: DataTypeModel,
-        key: tuple[str, str],
-    ):
+    def __init__(self, model: DataTypeModel, dataset: DataIdentifier):
         self.model = model
-        self.key = key
+        self.dataset = dataset
 
     @abstractmethod
     def __call__(self, ax: Axes, **kwargs):

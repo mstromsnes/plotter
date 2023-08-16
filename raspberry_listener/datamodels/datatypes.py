@@ -1,6 +1,15 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 from typing import Any, Callable, Protocol, Self
+
+
+@dataclass(frozen=True)
+class DataIdentifier:
+    source: str
+    data: str
+
+    def __iter__(self):
+        return iter(astuple(self))
 
 
 class DataSet_Fn(Protocol):
@@ -15,7 +24,7 @@ class Unit:
     explanation: str
 
 
-Observer = Callable[[str], None]
+Observer = Callable[[DataIdentifier], None]
 
 
 class DataTypeModel(ABC):
@@ -42,13 +51,13 @@ class DataTypeModel(ABC):
         ...
 
     # This is essentially a decorator that only decorates the private _register_data method.
-    def register_data(self, name: str, dataset_fn: DataSet_Fn, source_name: str):
-        self._register_data(name, dataset_fn, source_name)
+    def register_data(self, dataset: DataIdentifier, dataset_fn: DataSet_Fn):
+        self._register_data(dataset, dataset_fn)
         for obs in self._observers:
-            obs(source_name)
+            obs(dataset)
 
     @abstractmethod
-    def _register_data(self, name: str, dataset_fn: DataSet_Fn, source_name: str):
+    def _register_data(self, dataset: DataIdentifier, dataset_fn: DataSet_Fn):
         ...
 
     @abstractmethod
@@ -56,11 +65,11 @@ class DataTypeModel(ABC):
         ...
 
     @abstractmethod
-    def get_data(self, key: tuple[str, str]) -> Any:
+    def get_data(self, data_identifier: DataIdentifier) -> Any:
         ...
 
     @abstractmethod
-    def get_dataset_names(self) -> set[tuple[str, str]]:
+    def get_data_identifiers(self) -> set[DataIdentifier]:
         ...
 
     @abstractmethod
