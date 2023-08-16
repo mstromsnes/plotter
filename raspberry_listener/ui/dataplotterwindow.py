@@ -81,6 +81,7 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
                 tab = DataTypeTabWidget(data_model)
                 self.tab_widgets[data_model.name()] = tab
                 self.tab_widget.addTab(tab, data_model.name())
+                self.tab_widget.currentChanged.connect(tab.update_plots)
 
     def set_menubar(self):
         menubar = self.menuBar()
