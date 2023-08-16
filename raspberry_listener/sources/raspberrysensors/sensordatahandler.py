@@ -5,7 +5,7 @@ import pandera as pa
 from numpy import datetime64, floating
 from numpy.typing import NDArray
 from pandera.typing import DataFrame
-from sources import DataLoader, DataNotReadyException
+from sources import DataNotReadyException
 
 from .datatypes import Sensor, SensorData, SensorType
 from .remotereader import (
@@ -16,7 +16,7 @@ from .remotereader import (
 )
 
 
-class SensorDataFrameHandler(DataLoader):
+class SensorDataFrameHandler:
     def __init__(self):
         self._dataframe: DataFrame | None = None
 
