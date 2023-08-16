@@ -64,6 +64,7 @@ class TimeOfDayPlot(ColormapPlotStrategy):
         self._used_norm = normalizer
 
     def time_of_day_histogram(self, max_bincount):
+        full_timeseries, full_data = self.model.get_data(self.dataset)
         timeseries = full_timeseries[::1]
         data = full_data[0::1]
         # Here we get the bins for the entire range of values in the dataset. Each hour can have a different range of values, producing different bins

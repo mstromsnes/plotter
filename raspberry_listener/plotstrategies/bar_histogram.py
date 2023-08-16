@@ -1,13 +1,13 @@
 import numpy as np
-from datamodels import DataTypeModel
+from datamodels import DataIdentifier, DataTypeModel
 from matplotlib.axes import Axes
 
 from .plotstrategy import Color, SingleColorPlotStrategy
 
 
 class HistogramPlot(SingleColorPlotStrategy):
-    def __init__(self, model: DataTypeModel, key: tuple[str, str]):
-        super().__init__(model, key)
+    def __init__(self, model: DataTypeModel, dataset: DataIdentifier):
+        super().__init__(model, dataset)
         self.color = None
 
     @staticmethod
@@ -16,7 +16,7 @@ class HistogramPlot(SingleColorPlotStrategy):
 
     def __call__(self, ax: Axes, **kwargs):
         time_series, barchart_data = self.model.get_data(
-            self.key
+            self.dataset
         )  # We don't care about the time_series
         unique_values = len(np.unique(barchart_data))
         histogram, bin_edges = np.histogram(
@@ -33,7 +33,7 @@ class HistogramPlot(SingleColorPlotStrategy):
             histogram,
             width=width,
             align="center",
-            label=f"{self.key[1]}, {self.key[0]}",
+            label=f"{self.dataset.data}, {self.dataset.source}",
             log=True,
             alpha=0.8,
             color=self.color,

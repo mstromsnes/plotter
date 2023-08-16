@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Sequence
 
-from datamodels import DataTypeModel
+from datamodels import DataIdentifier, DataTypeModel
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from plotstrategies import PlotStrategy
@@ -52,14 +52,14 @@ class PlotManager:
         self.construct_plot_strategies()
 
     def construct_plot_strategies(self):
-        datasets = self.model.get_dataset_names()
+        datasets = self.model.get_data_identifiers()
         for dataset in datasets:
             self.construct_plot_strategy(dataset)
 
-    def construct_plot_strategy(self, key: tuple[str, str]):
-        ax = self.axes.from_key(key)
-        plot = self.plot_strategy(self.model, key)
-        self.color.apply(plot, key)
+    def construct_plot_strategy(self, dataset: DataIdentifier):
+        ax = self.axes.from_dataidentifier(dataset)
+        plot = self.plot_strategy(self.model, dataset)
+        self.color.apply(plot, dataset)
         self.major_tick_formatter(ax)
         self.minor_tick_formatter(ax)
         return ax, plot
@@ -69,16 +69,16 @@ class PlotManager:
             ax.relim()
             ax.autoscale()
 
-    def add_plotting_strategy(self, key: tuple[str, str]):
-        if not self.plots.plot_already_constructed(key):
-            ax, plot = self.construct_plot_strategy(key)
-            self.plots.add_plot_strategy(key, ax, plot)
-        self.plots.enable_plot(key)
+    def add_plotting_strategy(self, dataset: DataIdentifier):
+        if not self.plots.plot_already_constructed(dataset):
+            ax, plot = self.construct_plot_strategy(dataset)
+            self.plots.add_plot_strategy(dataset, ax, plot)
+        self.plots.enable_plot(dataset)
         self.plot()
 
-    def remove_plotting_strategy(self, key: tuple[str, str]):
-        self.plots.remove_plot_strategy(key)
-        ax = self.axes.from_key(key)
+    def remove_plotting_strategy(self, dataset: DataIdentifier):
+        self.plots.remove_plot_strategy(dataset)
+        ax = self.axes.from_dataidentifier(dataset)
         if not self.plots.axes_has_strategies(ax):
             self.legend.remove_legend()
         self.plot()

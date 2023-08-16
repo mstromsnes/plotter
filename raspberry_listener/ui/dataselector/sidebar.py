@@ -1,7 +1,7 @@
 from functools import partial
 from weakref import finalize
 
-from datamodels import DataTypeModel
+from datamodels import DataIdentifier, DataTypeModel
 from PySide6 import QtCore, QtGui, QtWidgets
 
 SideBarButtonType = type[QtWidgets.QRadioButton] | type[QtWidgets.QCheckBox]
@@ -25,8 +25,8 @@ class SideBar(QtWidgets.QTreeView):
         self.tree_model.build_complete_tree()
         self.header().hide()
 
-    def button_toggled_fn(self, model_key: tuple[str, str], state: bool):
-        self.data_toggled.emit(model_key, state)
+    def button_toggled_fn(self, dataset: DataIdentifier, state: bool):
+        self.data_toggled.emit(dataset, state)
 
     def add_source(self, source_item: QtGui.QStandardItem):
         source_name = source_item.text()
@@ -37,7 +37,7 @@ class SideBar(QtWidgets.QTreeView):
     def add_button(self, item: QtGui.QStandardItem, source_label: str):
         label = item.text()
         button = self.button_type(label.upper())
-        callback = partial(self.button_toggled_fn, (source_label, label))
+        callback = partial(self.button_toggled_fn, DataIdentifier(source_label, label))
         button.toggled.connect(callback)
         item.setText("")
         self.setIndexWidget(item.index(), button)

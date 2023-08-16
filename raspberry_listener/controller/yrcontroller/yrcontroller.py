@@ -2,7 +2,7 @@ from collections.abc import Callable
 from functools import partial
 
 import numpy as np
-from datamodels import HumidityModel, TemperatureModel
+from datamodels import DataIdentifier, HumidityModel, TemperatureModel
 from pandas import Series, Timedelta
 from sources import YrForecast, YrHistoric, get_settings
 
@@ -57,14 +57,12 @@ def register_yr_forecast_data(
     locations: dict[str, dict[str, float]] = settings["yr"]["locations"]
     for location in locations.keys():
         temperature_model.register_data(
-            location,
+            DataIdentifier(name, location),
             partial(get_data, location, "temperature"),
-            name,
         )
         humidity_model.register_data(
-            location,
+            DataIdentifier(name, location),
             partial(get_data, location, "humidity"),
-            name,
         )
 
 
@@ -72,7 +70,7 @@ def register_yr_historic_data(
     yr_historic: YrHistoric,
     temperature_model: TemperatureModel,
     humidity_model: HumidityModel,
-    name: str,
+    source_name: str,
 ):
     def get_data(location: str, variable: str):
         data = yr_historic.data_for_location(location)
@@ -99,12 +97,10 @@ def register_yr_historic_data(
     locations: dict[str, str] = settings["frost"]["stations"]
     for location in locations.keys():
         temperature_model.register_data(
-            location,
+            DataIdentifier(source_name, location),
             partial(get_data, location, "temperature"),
-            name,
         )
         humidity_model.register_data(
-            location,
+            DataIdentifier(source_name, location),
             partial(get_data, location, "humidity"),
-            name,
         )

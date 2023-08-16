@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Iterator, Sequence
 
+from datamodels import DataIdentifier
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
@@ -15,7 +16,7 @@ class AxesStrategy(ABC):
         ...
 
     @abstractmethod
-    def from_key(self, key: tuple[str, str]) -> Axes:
+    def from_dataidentifier(self, dataset: DataIdentifier) -> Axes:
         ...
 
     def __iter__(self) -> Iterator[Axes]:
@@ -36,5 +37,5 @@ class SingleAxesStrategy(AxesStrategy):
     def axes(self):
         return [self.ax]
 
-    def from_key(self, key: tuple[str, str]):
+    def from_dataidentifier(self, dataset: DataIdentifier):
         return self.ax

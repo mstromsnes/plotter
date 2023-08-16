@@ -3,7 +3,7 @@ from typing import Self
 
 import matplotlib
 import plotstrategies
-from datamodels import DataTypeModel
+from datamodels import DataIdentifier, DataTypeModel
 from matplotlib.ticker import FuncFormatter, NullFormatter
 from plotmanager import PlotManager
 from plotstrategies import PlotStrategy
@@ -54,11 +54,11 @@ class PlotWidget(DrawWidget):
         self.setLayout(self.h_layout)
 
     @ensure_manager
-    def toggle_data(self, label, checked):
+    def toggle_data(self, dataset: DataIdentifier, checked: bool):
         if checked:
-            self.manager.add_plotting_strategy(label)
+            self.manager.add_plotting_strategy(dataset)
         else:
-            self.manager.remove_plotting_strategy(label)
+            self.manager.remove_plotting_strategy(dataset)
 
     @ensure_manager
     def plot(self):
