@@ -20,8 +20,3 @@ class DataTypeTabWidget(QtWidgets.QTabWidget):
                 self.addTab(plot_widget, supported_plot.name())
             except KeyError:
                 pass
-
-    def update_plot(self):
-        for widget in self.widgets:
-            if widget.isVisible():
-                widget.plot()

@@ -3,14 +3,14 @@ from datetime import datetime
 
 import pandas as pd
 from attrs import define, field
-from sources.dataloader import DataLoader, DataNotReadyException
+from sources import DataNotReadyException
 
 from ..settings import get_settings
 from .apiclient import AsyncAPIClient
 
 
 @define
-class YrHistoric(DataLoader):
+class YrHistoric:
     _dataframe_mapping: dict[str, pd.DataFrame] = field(factory=dict)
     _client = AsyncAPIClient()
 

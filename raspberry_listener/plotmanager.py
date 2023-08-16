@@ -50,6 +50,17 @@ class PlotManager:
         self.major_tick_formatter = major_tick_formatter
         self.minor_tick_formatter = minor_tick_formatter
         self.construct_plot_strategies()
+        self.model.source_updated.connect(self.source_updated)
+
+    @draw
+    def source_updated(self, source_name: str):
+        plots = self.plots.from_source_with_name(source_name, enabled=True)
+        axes = {
+            self.axes.from_dataidentifier(DataIdentifier(source_name, name))
+            for name in plots
+        }
+        for ax in axes:
+            self.draw_plots_to_axes(ax)
 
     def construct_plot_strategies(self):
         datasets = self.model.get_data_identifiers()

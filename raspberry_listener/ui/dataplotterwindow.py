@@ -77,20 +77,10 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
         types = datatype_manager.get_types()
         for type in types:
             data_model = datatype_manager.get_model(type)
-            if data_model.has_data():
-                if not data_model.name() in self.tab_widgets:
-                    tab = DataTypeTabWidget(data_model)
-                    self.tab_widgets[data_model.name()] = tab
-                    self.tab_widget.addTab(tab, data_model.name())
-
-    def update_plots(self):
-        for widget in self.tab_widgets.values():
-            widget.update_plot()
-
-    def update_visible_plot(self):
-        for widget in self.tab_widgets.values():
-            if widget.isVisible():
-                widget.update_plot()
+            if not data_model.name() in self.tab_widgets:
+                tab = DataTypeTabWidget(data_model)
+                self.tab_widgets[data_model.name()] = tab
+                self.tab_widget.addTab(tab, data_model.name())
 
     def set_menubar(self):
         menubar = self.menuBar()
