@@ -2,10 +2,9 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
 from matplotlib.colors import Colormap, Normalize
 from matplotlib.container import BarContainer
-from matplotlib.projections.polar import PolarAxes
-from sources import DataNotReadyException
 
 from .plotstrategy import ColormapPlotStrategy, PlotNotReadyException
 
@@ -19,7 +18,8 @@ class TimeOfDayPlot(ColormapPlotStrategy):
     def name():
         return "Time of Day"
 
-        counts, bins = self.time_of_day_histogram()
+    def __call__(self, ax: Axes, **kwargs):
+        counts, bins = self.time_of_day_histogram(max_bincount=64)
         try:
             self.remove_artist()
         except AttributeError:
@@ -28,7 +28,7 @@ class TimeOfDayPlot(ColormapPlotStrategy):
 
     def plot_clock(
         self,
-        ax: PolarAxes,
+        ax: Axes,
         counts: np.ndarray,
         bins: np.ndarray,
         **kwargs,
@@ -59,17 +59,18 @@ class TimeOfDayPlot(ColormapPlotStrategy):
             )
             bottom += height
             self.artists.append(artist)
+        for border in theta:
+            ax.axvline(border, 0, 1, color="grey", linewidth=0.3)
         self._used_norm = normalizer
 
-    def time_of_day_histogram(self):
-        full_timeseries, full_data = self.model.get_data(self.label)
+    def time_of_day_histogram(self, max_bincount):
         timeseries = full_timeseries[::1]
         data = full_data[0::1]
         # Here we get the bins for the entire range of values in the dataset. Each hour can have a different range of values, producing different bins
         # In order to properly compare we want to use the same bins for every hour
         first_edge = np.min(data)
         last_edge = np.max(data)
-        bin_count = min(64, len(np.unique(data)))
+        bin_count = min(max_bincount, len(np.unique(data)))
         bin_edges = np.linspace(
             first_edge, last_edge, bin_count, endpoint=True, dtype=data.dtype
         )
