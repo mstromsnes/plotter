@@ -8,7 +8,7 @@ SideBarButtonType = type[QtWidgets.QRadioButton] | type[QtWidgets.QCheckBox]
 
 
 class SideBar(QtWidgets.QTreeView):
-    data_toggled = QtCore.Signal(tuple, bool)
+    data_toggled = QtCore.Signal(DataIdentifier, bool)
 
     def __init__(
         self,
@@ -21,18 +21,16 @@ class SideBar(QtWidgets.QTreeView):
         self.button_type = button_type
         self.tree_model = TreeModel(self.datatype_model)
         self.setModel(self.tree_model)
-        self.tree_model.source_added.connect(self.add_source)
+        self.tree_model.item_added.connect(self.add_widget_item)
         self.tree_model.build_complete_tree()
         self.header().hide()
 
     def button_toggled_fn(self, dataset: DataIdentifier, state: bool):
         self.data_toggled.emit(dataset, state)
 
-    def add_source(self, source_item: QtGui.QStandardItem):
-        source_name = source_item.text()
-        if source_item.hasChildren():
-            for row in range(source_item.rowCount()):
-                self.add_button(source_item.child(row, 0), source_name)
+    def add_widget_item(self, item: QtGui.QStandardItem, source_name: str):
+        if not item.hasChildren():
+            self.add_button(item, source_name)
 
     def add_button(self, item: QtGui.QStandardItem, source_label: str):
         label = item.text()
@@ -47,27 +45,37 @@ class SideBar(QtWidgets.QTreeView):
 
 
 class TreeModel(QtGui.QStandardItemModel):
-    source_added = QtCore.Signal(QtGui.QStandardItem)
+    item_added = QtCore.Signal(QtGui.QStandardItem, str)
 
     def __init__(self, datatype_model: DataTypeModel):
         super().__init__(None)
         self.datatype_model = datatype_model
-        self.datatype_model.register_observer(self.add_source)
-        self._finalizer = finalize(
-            self, self.datatype_model.remove_observer, self.add_source
-        )
+        self.datatype_model.dataline_registered.connect(self.add_item)
+        self.sources: dict[str, QtGui.QStandardItem] = dict()
         self.setHorizontalHeaderLabels([""])
 
     def build_complete_tree(self):
         for source in self.datatype_model.get_source_names():
+            dataset_names = self.datatype_model.get_data_name_from_source(source)
             self.add_source(source)
+            for name in dataset_names:
+                self.add_item(DataIdentifier(source, name))
 
     def add_source(self, source_name: str) -> None:
-        dataset_names = self.datatype_model.get_data_name_from_source(source_name)
         source_item = QtGui.QStandardItem(source_name)
-        for name in dataset_names:
-            data_item = QtGui.QStandardItem(name)
-            source_item.appendRow(data_item)
+        self.sources[source_name] = source_item
         root_item = self.invisibleRootItem()
         root_item.appendRow(source_item)
-        self.source_added.emit(source_item)
+
+    def add_item(self, dataset: DataIdentifier):
+        # Get or make the source item
+        source_name = dataset.source
+        if source_name not in self.sources:
+            self.add_source(source_name)
+        source_item = self.sources[source_name]
+
+        # Make the dataset item
+        item_name = dataset.data
+        item = QtGui.QStandardItem(item_name)
+        source_item.appendRow(item)
+        self.item_added.emit(item, source_name)
