@@ -44,7 +44,7 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
     def __init__(
         self,
         available_datasets: list[str],
-        dataset_loader: Callable[[str], DataThreadController],
+        dataset_loader: Callable[[str, DataTypeManager], DataThreadController],
         datatype_manager: DataTypeManager,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -52,7 +52,7 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
         self.tab_widget = QtWidgets.QTabWidget()
         self.available_datasets = available_datasets
         self.dataset_loader = dataset_loader
-        self.dataset_manager = datatype_manager
+        self.datatype_manager = datatype_manager
         self.tab_widgets: dict[str, DataTypeTabWidget] = {}
         self.setCentralWidget(self.tab_widget)
         self._loaded_datasets: set[str] = set()
@@ -65,12 +65,12 @@ class DataPlotterWindow(QtWidgets.QMainWindow):
 
     def _load_dataset(self, name: str):
         if name not in self._loaded_datasets:
-            thread = self.dataset_loader(name)
+            thread = self.dataset_loader(name, self.datatype_manager)
             self._loaded_datasets.add(name)
             self._data_loading_threads[name] = thread
             if name in self.available_datasets:
                 self.available_datasets.remove(name)
-            self.create_missing_datatype_tabs(self.dataset_manager)
+            self.create_missing_datatype_tabs(self.datatype_manager)
             self.dataset_picker.update_datasets(self.available_datasets)
 
     def create_missing_datatype_tabs(self, datatype_manager: DataTypeManager):

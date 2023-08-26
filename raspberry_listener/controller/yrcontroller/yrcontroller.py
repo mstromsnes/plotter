@@ -1,8 +1,14 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from functools import partial
 
 import numpy as np
-from datamodels import DataIdentifier, HumidityModel, TemperatureModel
+from datamodels import (
+    DataIdentifier,
+    DataTypeManager,
+    DataTypeModel,
+    HumidityModel,
+    TemperatureModel,
+)
 from pandas import Series, Timedelta
 from sources import YrForecast, YrHistoric, get_settings
 
@@ -26,10 +32,9 @@ def time_resolution_indexer(time_series: Series, delta: Timedelta) -> Series:
 
 def register_yr_forecast_data(
     yr_forecast: YrForecast,
-    temperature_model: TemperatureModel,
-    humidity_model: HumidityModel,
+    datatype_manager: DataTypeManager,
     name: str,
-):
+) -> Sequence[DataTypeModel]:
     def get_data(location: str, variable: str):
         data = yr_forecast.data_for_location(location)
 
@@ -54,6 +59,10 @@ def register_yr_forecast_data(
                 raise KeyError("Unsupported variable type")
 
     settings = get_settings()
+
+    temperature_model = datatype_manager.get_model(TemperatureModel)
+    humidity_model = datatype_manager.get_model(HumidityModel)
+
     locations: dict[str, dict[str, float]] = settings["yr"]["locations"]
     for location in locations.keys():
         temperature_model.register_data(
@@ -65,13 +74,14 @@ def register_yr_forecast_data(
             partial(get_data, location, "humidity"),
         )
 
+    return temperature_model, humidity_model
+
 
 def register_yr_historic_data(
     yr_historic: YrHistoric,
-    temperature_model: TemperatureModel,
-    humidity_model: HumidityModel,
+    datatype_manager: DataTypeManager,
     source_name: str,
-):
+) -> Sequence[DataTypeModel]:
     def get_data(location: str, variable: str):
         data = yr_historic.data_for_location(location)
 
@@ -94,6 +104,10 @@ def register_yr_historic_data(
                 raise KeyError("Unsupported variable type")
 
     settings = get_settings()
+
+    temperature_model = datatype_manager.get_model(TemperatureModel)
+    humidity_model = datatype_manager.get_model(HumidityModel)
+
     locations: dict[str, str] = settings["frost"]["stations"]
     for location in locations.keys():
         temperature_model.register_data(
@@ -104,3 +118,5 @@ def register_yr_historic_data(
             DataIdentifier(source_name, location),
             partial(get_data, location, "humidity"),
         )
+
+    return temperature_model, humidity_model
