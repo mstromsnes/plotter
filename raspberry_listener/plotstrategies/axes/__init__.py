@@ -1,1 +1,6 @@
-from .axes import AxesStrategy, SingleAxesStrategy
+from .axes import (
+    AxesStrategy,
+    HorizontalOneSubfigureAxesPrPlotStrategy,
+    SingleAxesStrategy,
+    SingleAxesSubFigureStrategy,
+)
