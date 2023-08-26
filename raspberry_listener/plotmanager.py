@@ -37,8 +37,6 @@ class PlotManager:
         axes: AxesStrategy,
         color: ColorStrategy,
         legend: LegendStrategy,
-        major_tick_formatter: TickStrategy = major_tickformatter(),
-        minor_tick_formatter: TickStrategy = minor_tickformatter(),
     ):
         self.widget = draw_widget
         self.model = model
