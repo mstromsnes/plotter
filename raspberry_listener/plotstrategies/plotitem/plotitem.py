@@ -3,6 +3,7 @@ from enum import Enum, auto
 from attrs import define, field
 from datamodels import DataIdentifier
 from matplotlib.axes import Axes
+from sources import DataNotReadyException
 
 from ..axes import AxesStrategy
 from ..plotstrategy import PlotStrategy
@@ -23,7 +24,6 @@ class PlotItem:
 
     @property
     def ax(self) -> Axes:
-        print(f"Checking axes for {self.identifier=}")
         return self._axes_strategy.from_dataidentifier(self.identifier)
 
     @property
@@ -77,4 +77,7 @@ class PlotItem:
         return fig
 
     def draw_plot(self):
-        self.plot_strategy(self.ax)
+        try:
+            self.plot_strategy(self.ax)
+        except DataNotReadyException:
+            pass
