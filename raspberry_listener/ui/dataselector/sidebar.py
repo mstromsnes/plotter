@@ -1,5 +1,4 @@
 from functools import partial
-from weakref import finalize
 
 from datamodels import DataIdentifier, DataTypeModel
 from PySide6 import QtCore, QtGui, QtWidgets

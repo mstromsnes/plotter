@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, TypeVar
 
 from datamodels import DataTypeModel
 from matplotlib.axes import Axes
@@ -14,7 +14,8 @@ from matplotlib.ticker import (
 )
 from numpy import pi
 
-TickStrategy = Callable[[Axes], None]
+AxesType = TypeVar("AxesType", Axes, PolarAxes)
+TickStrategy = Callable[[AxesType], None]
 
 
 def concise_date_formatter(ax: Axes, model: DataTypeModel):
