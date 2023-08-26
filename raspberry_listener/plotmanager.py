@@ -1,16 +1,11 @@
 from functools import wraps
-from typing import Sequence
 
 from datamodels import DataIdentifier, DataTypeModel
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from plotstrategies import PlotStrategy
 from plotstrategies.axes import AxesStrategy
 from plotstrategies.color import ColorStrategy
 from plotstrategies.legend import LegendStrategy
-from plotstrategies.plotcontainer import PlotContainer
-from plotstrategies.tick import TickStrategy, major_tickformatter, minor_tickformatter
-from sources import DataNotReadyException
+from plotstrategies.plotitem import PlotItem, PlotStatus
 from ui.drawwidget import DrawWidget
 
 
@@ -37,30 +32,23 @@ class PlotManager:
         axes: AxesStrategy,
         color: ColorStrategy,
         legend: LegendStrategy,
-        major_tick_formatter: TickStrategy = major_tickformatter(),
-        minor_tick_formatter: TickStrategy = minor_tickformatter(),
     ):
         self.widget = draw_widget
         self.model = model
         self.plot_strategy = plot_strategy
-        self.axes = axes
         self.color = color
         self.legend = legend
-        self.plots = PlotContainer()
-        self.major_tick_formatter = major_tick_formatter
-        self.minor_tick_formatter = minor_tick_formatter
-        self.construct_plot_strategies()
+        self.axes_strategy = axes
         self.model.source_updated.connect(self.source_updated)
+        self.model.dataline_registered.connect(self.construct_plot_strategy)
 
-    @draw
+        self.plots: dict[DataIdentifier, PlotItem] = {}
+        self.construct_plot_strategies()
+
     def source_updated(self, source_name: str):
-        plots = self.plots.from_source_with_name(source_name, enabled=True)
-        axes = {
-            self.axes.from_dataidentifier(DataIdentifier(source_name, name))
-            for name in plots
-        }
-        for ax in axes:
-            self.draw_plots_to_axes(ax)
+        data_names = self.model.get_data_name_from_source(source_name)
+        plots = [DataIdentifier(source_name, data_name) for data_name in data_names]
+        self.draw_plots(plots)
 
     def construct_plot_strategies(self):
         datasets = self.model.get_data_identifiers()
@@ -68,51 +56,34 @@ class PlotManager:
             self.construct_plot_strategy(dataset)
 
     def construct_plot_strategy(self, dataset: DataIdentifier):
-        ax = self.axes.from_dataidentifier(dataset)
-        plot = self.plot_strategy(self.model, dataset)
-        self.color.apply(plot, dataset)
-        self.major_tick_formatter(ax)
-        self.minor_tick_formatter(ax)
-        return ax, plot
+        constructed_strategy = self.plot_strategy(self.model, dataset)
+        self.color.apply(constructed_strategy, dataset)
+        self.plots[dataset] = PlotItem(
+            dataset, constructed_strategy, PlotStatus.Disabled, self.axes_strategy
+        )
 
     def rescale(self):
-        for ax in self.axes:
+        for ax in self.axes_strategy:
             ax.relim()
             ax.autoscale()
 
     def add_plotting_strategy(self, dataset: DataIdentifier):
-        if not self.plots.plot_already_constructed(dataset):
-            ax, plot = self.construct_plot_strategy(dataset)
-            self.plots.add_plot_strategy(dataset, ax, plot)
-        self.plots.enable_plot(dataset)
+        self.plots[dataset].status = PlotStatus.Enabled
         self.plot()
 
     def remove_plotting_strategy(self, dataset: DataIdentifier):
-        self.plots.remove_plot_strategy(dataset)
-        ax = self.axes.from_dataidentifier(dataset)
-        if not self.plots.axes_has_strategies(ax):
-            self.legend.remove_legend()
+        self.plots[dataset].status = PlotStatus.Disabled
         self.plot()
 
     @draw
+    def draw_plots(self, plots: list[DataIdentifier]):
+        drawn_plots = []
+        for dataset in plots:
+            if self.plots[dataset].visible:
+                self.plots[dataset].draw_plot()
+                drawn_plots.append(self.plots[dataset])
+        self.legend(drawn_plots)
+
     def plot(self):
-        for ax in self.axes:
-            if self.plots.axes_has_strategies(ax):
-                self.draw_plots_to_axes(ax)
-
-    def draw_plots_to_axes(self, ax: Axes):
-        # This is where we ask Matplotlib to do the heavy lifting of creating the graphs
-        # Qt doesn't yet draw it to the screen
-        plots = self.plots.from_axes(ax)
-        for plot in plots:
-            try:
-                plot(ax)
-            except DataNotReadyException:
-                pass
-        self.draw_legend(ax, self.widget.figure, plots)
-
-    def draw_legend(self, ax: Axes, figure: Figure, strategies: Sequence[PlotStrategy]):
-        self.legend(ax, figure, strategies)
-
-    def has_strategies(self) -> bool:
-        return any(self.plots.axes_has_strategies(ax) for ax in self.axes)
+        datasets_to_plot = list(self.plots.keys())
+        self.draw_plots(datasets_to_plot)

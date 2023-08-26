@@ -21,9 +21,8 @@ class PlotStrategy(ABC):
         """A method that plots something from self on axes ax."""
         ...
 
-    @staticmethod
     @abstractmethod
-    def name() -> str:
+    def artist(self):
         ...
 
     @abstractmethod

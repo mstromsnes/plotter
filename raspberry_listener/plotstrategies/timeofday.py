@@ -14,10 +14,6 @@ class ColorNotSetException(Exception):
 
 
 class TimeOfDayPlot(ColormapPlotStrategy):
-    @staticmethod
-    def name():
-        return "Time of Day"
-
     def __call__(self, ax: Axes, **kwargs):
         counts, bins = self.time_of_day_histogram(max_bincount=64)
         try:
@@ -92,6 +88,9 @@ class TimeOfDayPlot(ColormapPlotStrategy):
 
         counts = np.array([count_without_bins(group, bins) for _, group in grouping])
         return counts
+
+    def artist(self):
+        pass
 
     def remove_artist(self):
         [artist.remove() for artist in self.artists]

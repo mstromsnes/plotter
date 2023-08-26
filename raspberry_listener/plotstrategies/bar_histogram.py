@@ -10,10 +10,6 @@ class HistogramPlot(SingleColorPlotStrategy):
         super().__init__(model, dataset)
         self.color = None
 
-    @staticmethod
-    def name():
-        return "Histogram"
-
     def __call__(self, ax: Axes, **kwargs):
         time_series, barchart_data = self.model.get_data(
             self.dataset
@@ -28,7 +24,7 @@ class HistogramPlot(SingleColorPlotStrategy):
         except AttributeError:
             pass
         width = bin_edges[1] - bin_edges[0]
-        self.artist = ax.bar(
+        self._artist = ax.bar(
             bin_edges[:-1],
             histogram,
             width=width,
@@ -41,8 +37,11 @@ class HistogramPlot(SingleColorPlotStrategy):
         )
 
     def remove_artist(self):
-        self.artist.remove()
-        del self.artist
+        self._artist.remove()
+        del self._artist
+
+    def artist(self):
+        return self._artist
 
     def set_color(self, color: Color):
         self.color = color

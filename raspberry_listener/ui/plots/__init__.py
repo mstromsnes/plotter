@@ -1,1 +1,1 @@
-from .plotwidget import PlotWidget, PlotWidgetFactory
+from .plotwidget import PlotWidget
