@@ -1,16 +1,24 @@
+from collections.abc import Sequence
 from functools import partial
 
-from datamodels import DataIdentifier, HumidityModel, TemperatureModel
+from datamodels import (
+    DataIdentifier,
+    DataTypeManager,
+    DataTypeModel,
+    HumidityModel,
+    TemperatureModel,
+)
 from sources import SensorDataFrameHandler
 from sources.raspberrysensors.datatypes import Sensor, SensorType
 
 
 def register_raspberry_sensor_data(
     sensordata_handler: SensorDataFrameHandler,
-    temperature_model: TemperatureModel,
-    humidity_model: HumidityModel,
+    datatype_manager: DataTypeManager,
     source_name: str,
-):
+) -> Sequence[DataTypeModel]:
+    temperature_model = datatype_manager.get_model(TemperatureModel)
+    humidity_model = datatype_manager.get_model(HumidityModel)
     temperature_model.register_data(
         DataIdentifier(source_name, Sensor.DHT11.value),
         partial(sensordata_handler.get_data, (SensorType.Temperature, Sensor.DHT11)),
@@ -27,3 +35,5 @@ def register_raspberry_sensor_data(
         DataIdentifier(source_name, Sensor.DHT11.value),
         partial(sensordata_handler.get_data, (SensorType.Humidity, Sensor.DHT11)),
     )
+
+    return temperature_model, humidity_model

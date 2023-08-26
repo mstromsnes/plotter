@@ -1,5 +1,5 @@
 from dataclasses import astuple, dataclass
-from typing import Any, Callable, Protocol, Self
+from typing import Any, Protocol, Self, TypeVar
 
 from PySide6 import QtCore
 
@@ -12,6 +12,9 @@ class DataIdentifier:
     def __iter__(self):
         return iter(astuple(self))
 
+    def __str__(self):
+        return f"{self.data}, {self.source}"
+
 
 class DataSet_Fn(Protocol):
     def __call__(self) -> Any:
@@ -23,9 +26,6 @@ class Unit:
     short: str
     long: str
     explanation: str
-
-
-Observer = Callable[[DataIdentifier], None]
 
 
 class DataTypeModel(QtCore.QObject):
@@ -65,9 +65,16 @@ class DataTypeModel(QtCore.QObject):
         return cls._unit
 
 
+Model = TypeVar("Model", bound=DataTypeModel)
+
+
+class DataTypeDict(dict[type[Model], Model]):
+    ...
+
+
 class DataTypeManager:
     def __init__(self: Self):
-        self._datatypemodels: dict[type[DataTypeModel], DataTypeModel] = {}
+        self._datatypemodels: DataTypeDict = DataTypeDict()
 
     def register_datatype(self, datatype: DataTypeModel):
         if type(datatype) in self._datatypemodels.keys():
@@ -77,5 +84,5 @@ class DataTypeManager:
     def get_types(self) -> set[type[DataTypeModel]]:
         return set(self._datatypemodels.keys())
 
-    def get_model(self, type: type[DataTypeModel]) -> DataTypeModel:
+    def get_model(self, type: type[Model]) -> Model:
         return self._datatypemodels[type]
