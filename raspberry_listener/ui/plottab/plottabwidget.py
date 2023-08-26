@@ -1,7 +1,8 @@
 from controller import supported_plots
 from datamodels import DataTypeModel
 from PySide6 import QtWidgets
-from ui.plots import PlotWidget, PlotWidgetFactory
+from ui.plots import PlotWidget
+from ui.plotwidgetfactory import build_widgets
 
 
 class DataTypeTabWidget(QtWidgets.QTabWidget):
@@ -12,17 +13,12 @@ class DataTypeTabWidget(QtWidgets.QTabWidget):
     ):
         super().__init__(parent)
         self.model = model
-        self.widgets: list[PlotWidget] = []
-        for supported_plot in supported_plots(model):
-            try:
-                plot_widget = PlotWidgetFactory.build(model, supported_plot)
-                self.widgets.append(plot_widget)
-                self.addTab(plot_widget, supported_plot.name())
-            except KeyError:
-                pass
+        self.widgets: dict[str, PlotWidget] = build_widgets(model)
+        for name, widget in self.widgets.items():
+            self.addTab(widget, name)
         self.currentChanged.connect(self.update_plots)
 
     def update_plots(self):
-        for widget in self.widgets:
+        for widget in self.widgets.values():
             if widget.isVisible():
                 widget.plot()
